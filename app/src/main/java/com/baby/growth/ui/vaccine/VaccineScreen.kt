@@ -96,7 +96,8 @@ fun VaccineScreen(
                         EmptyState(
                             icon = Icons.Outlined.Vaccines,
                             title = "暂无疫苗记录",
-                            subtitle = "添加宝宝生日后会自动生成接种计划"
+                            subtitle = "添加宝宝生日后会自动生成接种计划",
+                            emoji = "💉",
                         )
                     }
                 } else {

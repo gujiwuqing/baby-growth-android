@@ -46,9 +46,18 @@ class DiaperViewModel(application: Application) : AndroidViewModel(application) 
     private val _lastRecord = mutableStateOf<DiaperRecord?>(null)
     val lastRecord: State<DiaperRecord?> = _lastRecord
 
+    private val _editRecord = mutableStateOf<DiaperRecord?>(null)
+    val editRecord: State<DiaperRecord?> = _editRecord
+
     init {
         viewModelScope.launch {
             _lastRecord.value = db.diaperDao().getLatest()
+        }
+    }
+
+    fun loadForEdit(id: Long) {
+        viewModelScope.launch {
+            _editRecord.value = db.diaperDao().getById(id)
         }
     }
 
@@ -69,15 +78,39 @@ class DiaperViewModel(application: Application) : AndroidViewModel(application) 
             onSuccess()
         }
     }
+
+    fun updateRecord(
+        record: DiaperRecord, type: String, hasRash: Int,
+        pooColor: String, pooShape: String, note: String, onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            db.diaperDao().update(
+                record.copy(
+                    type = type, hasRash = hasRash,
+                    pooColor = pooColor, pooShape = pooShape,
+                    note = note
+                )
+            )
+            onSuccess()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiaperRecordScreen(
     navController: NavController,
+    editId: Long? = null,
     viewModel: DiaperViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val isEditMode = editId != null
+    val editRecord by viewModel.editRecord
+
+    LaunchedEffect(editId) {
+        if (editId != null) viewModel.loadForEdit(editId)
+    }
+
     var diaperType by remember { mutableStateOf("pee") }
     var hasRash by remember { mutableStateOf(false) }
     var pooColor by remember { mutableStateOf("") }
@@ -86,6 +119,18 @@ fun DiaperRecordScreen(
     var recordTime by remember { mutableStateOf(System.currentTimeMillis()) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+
+    // 编辑模式回填数据
+    LaunchedEffect(editRecord) {
+        editRecord?.let { record ->
+            diaperType = record.type
+            hasRash = record.hasRash == 1
+            pooColor = record.pooColor
+            pooShape = record.pooShape
+            note = record.note
+            recordTime = record.recordTime
+        }
+    }
 
     val showPooFields = diaperType == "poo" || diaperType == "both"
     val lastRecord by viewModel.lastRecord
@@ -101,8 +146,8 @@ fun DiaperRecordScreen(
     Scaffold(
         topBar = {
             BabyTopBar(
-                title = "换尿布",
-                subtitle = lastRecordSubtitle,
+                title = if (isEditMode) "编辑尿布记录" else "换尿布",
+                subtitle = if (isEditMode) null else lastRecordSubtitle,
                 onBack = { navController.popBackStack() }
             )
         }
@@ -336,19 +381,33 @@ fun DiaperRecordScreen(
             Spacer(modifier = Modifier.height(Spacing.lg))
 
             PrimaryButton(
-                text = "保存记录",
+                text = if (isEditMode) "保存修改" else "保存记录",
                 onClick = {
-                    viewModel.saveRecord(
-                        type = diaperType,
-                        hasRash = if (hasRash) 1 else 0,
-                        pooColor = pooColor,
-                        pooShape = pooShape,
-                        color = pooColor,
-                        note = note,
-                        recordTime = recordTime
-                    ) {
-                        Toast.makeText(context, "尿布记录已保存", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
+                    if (isEditMode && editRecord != null) {
+                        viewModel.updateRecord(
+                            record = editRecord!!,
+                            type = diaperType,
+                            hasRash = if (hasRash) 1 else 0,
+                            pooColor = pooColor,
+                            pooShape = pooShape,
+                            note = note
+                        ) {
+                            Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
+                    } else {
+                        viewModel.saveRecord(
+                            type = diaperType,
+                            hasRash = if (hasRash) 1 else 0,
+                            pooColor = pooColor,
+                            pooShape = pooShape,
+                            color = pooColor,
+                            note = note,
+                            recordTime = recordTime
+                        ) {
+                            Toast.makeText(context, "尿布记录已保存", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
                     }
                 }
             )

@@ -31,9 +31,18 @@ class FoodViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastRecord = mutableStateOf<FoodRecord?>(null)
     val lastRecord: State<FoodRecord?> = _lastRecord
 
+    private val _editRecord = mutableStateOf<FoodRecord?>(null)
+    val editRecord: State<FoodRecord?> = _editRecord
+
     init {
         viewModelScope.launch {
             _lastRecord.value = db.foodDao().getLatest()
+        }
+    }
+
+    fun loadForEdit(id: Long) {
+        viewModelScope.launch {
+            _editRecord.value = db.foodDao().getById(id)
         }
     }
 
@@ -53,15 +62,38 @@ class FoodViewModel(application: Application) : AndroidViewModel(application) {
             onSuccess()
         }
     }
+
+    fun updateRecord(
+        record: FoodRecord, foodName: String, category: String,
+        amount: String, unit: String, reaction: String, note: String, onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            db.foodDao().update(
+                record.copy(
+                    foodName = foodName, category = category,
+                    amount = amount, unit = unit,
+                    reaction = reaction, note = note
+                )
+            )
+            onSuccess()
+        }
+    }
 }
 
 @Composable
 fun FoodRecordScreen(
     navController: NavController,
+    editId: Long? = null,
     viewModel: FoodViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val isEditMode = editId != null
+    val editRecord by viewModel.editRecord
     val lastRecord by viewModel.lastRecord
+
+    LaunchedEffect(editId) {
+        if (editId != null) viewModel.loadForEdit(editId)
+    }
 
     val lastRecordSubtitle = lastRecord?.let { last ->
         val relativeTime = DateUtils.formatRelativeTime(last.recordTime)
@@ -76,11 +108,23 @@ fun FoodRecordScreen(
     var reaction by remember { mutableStateOf("normal") }
     var note by remember { mutableStateOf("") }
 
+    // 编辑模式回填数据
+    LaunchedEffect(editRecord) {
+        editRecord?.let { record ->
+            foodName = record.foodName
+            category = record.category
+            amount = record.amount
+            unit = record.unit
+            reaction = record.reaction
+            note = record.note
+        }
+    }
+
     Scaffold(
         topBar = {
             BabyTopBar(
-                title = "辅食记录",
-                subtitle = lastRecordSubtitle,
+                title = if (isEditMode) "编辑辅食记录" else "辅食记录",
+                subtitle = if (isEditMode) null else lastRecordSubtitle,
                 onBack = { navController.popBackStack() }
             )
         }
@@ -158,11 +202,18 @@ fun FoodRecordScreen(
             Spacer(modifier = Modifier.height(Spacing.lg))
 
             PrimaryButton(
-                text = "保存记录",
+                text = if (isEditMode) "保存修改" else "保存记录",
                 onClick = {
-                    viewModel.saveRecord(foodName, category, amount, unit, reaction, note) {
-                        Toast.makeText(context, "辅食记录已保存", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
+                    if (isEditMode && editRecord != null) {
+                        viewModel.updateRecord(editRecord!!, foodName, category, amount, unit, reaction, note) {
+                            Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
+                    } else {
+                        viewModel.saveRecord(foodName, category, amount, unit, reaction, note) {
+                            Toast.makeText(context, "辅食记录已保存", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
                     }
                 }
             )

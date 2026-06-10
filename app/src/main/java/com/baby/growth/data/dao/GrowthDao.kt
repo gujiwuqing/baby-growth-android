@@ -27,6 +27,9 @@ interface GrowthDao {
     @Query("SELECT * FROM growth_records WHERE uniqueId = :uniqueId LIMIT 1")
     suspend fun getByUniqueId(uniqueId: String): GrowthRecord?
 
+    @Query("SELECT * FROM growth_records WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): GrowthRecord?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(record: GrowthRecord): Long
 

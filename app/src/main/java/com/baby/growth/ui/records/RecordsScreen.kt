@@ -152,9 +152,11 @@ fun RecordsScreen(
                 }
             }
 
-            // 周视图柱状图
+            // 周视图图表
             if (dimension == "week") {
                 item { WeeklyBarChart(weekDayStats) }
+                item { WeeklyMilkLineChart(weekDayStats) }
+                item { WeeklySleepBarChart(weekDayStats) }
             }
 
             // 时间轴标题
@@ -182,6 +184,7 @@ fun RecordsScreen(
                         icon = Icons.Outlined.EventNote,
                         title = "暂无记录",
                         subtitle = "快来记录宝宝的第一次吧~",
+                        emoji = "🌈",
                     )
                 }
             } else {
@@ -196,6 +199,18 @@ fun RecordsScreen(
                         subtitle = item.detail.split("\n").firstOrNull() ?: "",
                         typeKey = item.type,
                         isLast = index == timelineItems.lastIndex,
+                        onClick = {
+                            val editRoute = when (item.tableName) {
+                                "feeds" -> "record/feeding/edit/${item.id}"
+                                "diapers" -> "record/diaper/edit/${item.id}"
+                                "sleeps" -> "record/sleep/edit/${item.id}"
+                                "foods" -> "record/food/edit/${item.id}"
+                                "supplements" -> "record/supplement/edit/${item.id}"
+                                "growth_records" -> "record/growth/edit/${item.id}"
+                                else -> null
+                            }
+                            editRoute?.let { navController.navigate(it) }
+                        },
                         onLongClick = { showDeleteDialog = item },
                     )
                 }
@@ -484,6 +499,115 @@ private fun MonthCalendarCard(
                         }
                     }
                     repeat(7 - week.size) { Spacer(modifier = Modifier.weight(1f)) }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 周奶量趋势折线图
+ */
+@Composable
+private fun WeeklyMilkLineChart(stats: List<WeekDayStat>) {
+    if (stats.isEmpty() || stats.all { it.totalMilk == 0 }) return
+    val maxMilk = stats.maxOf { it.totalMilk }.coerceAtLeast(50)
+
+    BabyTitledCard(title = "奶量趋势 (ml)") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(130.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            stats.forEach { stat ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    if (stat.totalMilk > 0) {
+                        Text(
+                            text = "${stat.totalMilk}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = RecordColor.Formula,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(6.dp)
+                                .height((stat.totalMilk.toFloat() / maxMilk * 80).dp)
+                                .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                                .background(RecordColor.Formula),
+                        )
+                    } else {
+                        Spacer(modifier = Modifier.height(82.dp))
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = stat.dayLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 周睡眠时长柱状图
+ */
+@Composable
+private fun WeeklySleepBarChart(stats: List<WeekDayStat>) {
+    if (stats.isEmpty() || stats.all { it.sleepMinutes == 0 }) return
+    val maxSleepHours = stats.maxOf { it.sleepMinutes / 60f }.coerceAtLeast(1f)
+
+    BabyTitledCard(title = "睡眠时长 (h)") {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(130.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            stats.forEach { stat ->
+                val sleepHours = stat.sleepMinutes / 60f
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    if (stat.sleepMinutes > 0) {
+                        Text(
+                            text = "${String.format("%.1f", sleepHours)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = RecordColor.Sleep,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(24.dp)
+                                .height((sleepHours / maxSleepHours * 80).dp)
+                                .clip(RoundedCornerShape(topStart = Radius.sm, topEnd = Radius.sm))
+                                .background(RecordColor.Sleep.copy(alpha = 0.7f)),
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .width(24.dp)
+                                .height(3.dp)
+                                .clip(RoundedCornerShape(topStart = Radius.sm, topEnd = Radius.sm))
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = stat.dayLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary,
+                    )
                 }
             }
         }

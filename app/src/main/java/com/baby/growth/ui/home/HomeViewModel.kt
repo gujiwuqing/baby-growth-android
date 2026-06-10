@@ -20,6 +20,11 @@ data class TodayStats(
     val supplementCount: Int = 0
 )
 
+data class SmartTip(
+    val emoji: String,
+    val message: String
+)
+
 data class RecentRecord(
     val id: Long,
     val type: String,
@@ -42,6 +47,9 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _recentRecords = MutableStateFlow<List<RecentRecord>>(emptyList())
     val recentRecords: StateFlow<List<RecentRecord>> = _recentRecords.asStateFlow()
 
+    private val _smartTips = MutableStateFlow<List<SmartTip>>(emptyList())
+    val smartTips: StateFlow<List<SmartTip>> = _smartTips.asStateFlow()
+
     init {
         loadData()
     }
@@ -54,6 +62,59 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
         loadTodayStats()
         loadRecentRecords()
+        loadSmartTips()
+    }
+
+    private fun loadSmartTips() {
+        viewModelScope.launch {
+            val tips = mutableListOf<SmartTip>()
+            val now = System.currentTimeMillis()
+
+            // 检查距上次喂奶时间
+            val lastFeed = db.feedDao().getLatest()
+            if (lastFeed != null) {
+                val minutesSinceLastFeed = (now - lastFeed.recordTime) / 60000
+                if (minutesSinceLastFeed > 180) {
+                    val hours = minutesSinceLastFeed / 60
+                    tips.add(SmartTip("🍼", "距上次喂奶已过${hours}小时，注意宝宝是否饿了"))
+                }
+            } else {
+                tips.add(SmartTip("🍼", "今天还没有喂奶记录哦"))
+            }
+
+            // 检查睡眠情况
+            val lastSleep = db.sleepDao().getLatest()
+            if (lastSleep != null) {
+                val minutesSinceLastSleep = (now - lastSleep.recordTime) / 60000
+                if (minutesSinceLastSleep > 240) {
+                    tips.add(SmartTip("😴", "宝宝醒了很久了，注意观察困倦信号"))
+                }
+            }
+
+            // 检查换尿布
+            val lastDiaper = db.diaperDao().getLatest()
+            if (lastDiaper != null) {
+                val minutesSinceLastDiaper = (now - lastDiaper.recordTime) / 60000
+                if (minutesSinceLastDiaper > 180) {
+                    tips.add(SmartTip("👶", "超过3小时没换尿布了，检查一下吧"))
+                }
+            }
+
+            // 如果没有任何提示，给一个鼓励
+            if (tips.isEmpty()) {
+                val calendar = Calendar.getInstance()
+                val hour = calendar.get(Calendar.HOUR_OF_DAY)
+                val greeting = when {
+                    hour < 9 -> "早安！新的一天开始啦 ☀️"
+                    hour < 12 -> "上午好！记录宝宝的精彩上午"
+                    hour < 18 -> "下午好！宝宝今天表现棒棒哒"
+                    else -> "晚上好！辛苦了，记得照顾好自己 🌙"
+                }
+                tips.add(SmartTip("💝", greeting))
+            }
+
+            _smartTips.value = tips
+        }
     }
 
     private fun loadTodayStats() {

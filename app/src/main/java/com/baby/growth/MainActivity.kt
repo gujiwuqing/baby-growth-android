@@ -149,6 +149,31 @@ fun MainScreen(initialRoute: String? = null) {
             composable("record/food") { FoodRecordScreen(navController) }
             composable("record/supplement") { SupplementRecordScreen(navController) }
             composable("record/growth") { GrowthRecordScreen(navController) }
+            // 编辑路由
+            composable("record/feeding/edit/{id}") { backStackEntry ->
+                val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
+                FeedingRecordScreen(navController, editId = editId)
+            }
+            composable("record/diaper/edit/{id}") { backStackEntry ->
+                val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
+                DiaperRecordScreen(navController, editId = editId)
+            }
+            composable("record/sleep/edit/{id}") { backStackEntry ->
+                val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
+                SleepRecordScreen(navController, editId = editId)
+            }
+            composable("record/food/edit/{id}") { backStackEntry ->
+                val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
+                FoodRecordScreen(navController, editId = editId)
+            }
+            composable("record/supplement/edit/{id}") { backStackEntry ->
+                val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
+                SupplementRecordScreen(navController, editId = editId)
+            }
+            composable("record/growth/edit/{id}") { backStackEntry ->
+                val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
+                GrowthRecordScreen(navController, editId = editId)
+            }
             composable("profile") { ProfileScreen(navController) }
         }
     }

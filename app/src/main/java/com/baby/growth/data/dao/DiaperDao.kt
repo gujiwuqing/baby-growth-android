@@ -24,6 +24,9 @@ interface DiaperDao {
     @Query("SELECT * FROM diapers WHERE uniqueId = :uniqueId LIMIT 1")
     suspend fun getByUniqueId(uniqueId: String): DiaperRecord?
 
+    @Query("SELECT * FROM diapers WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): DiaperRecord?
+
     @Query("SELECT * FROM diapers ORDER BY recordTime DESC LIMIT 1")
     suspend fun getLatest(): DiaperRecord?
 

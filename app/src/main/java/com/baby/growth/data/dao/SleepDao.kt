@@ -27,6 +27,9 @@ interface SleepDao {
     @Query("SELECT * FROM sleeps WHERE uniqueId = :uniqueId LIMIT 1")
     suspend fun getByUniqueId(uniqueId: String): SleepRecord?
 
+    @Query("SELECT * FROM sleeps WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): SleepRecord?
+
     @Query("SELECT * FROM sleeps ORDER BY recordTime DESC LIMIT 1")
     suspend fun getLatest(): SleepRecord?
 

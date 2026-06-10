@@ -36,9 +36,18 @@ class FeedingViewModel(application: Application) : AndroidViewModel(application)
     private val _lastRecord = mutableStateOf<FeedRecord?>(null)
     val lastRecord: State<FeedRecord?> = _lastRecord
 
+    private val _editRecord = mutableStateOf<FeedRecord?>(null)
+    val editRecord: State<FeedRecord?> = _editRecord
+
     init {
         viewModelScope.launch {
             _lastRecord.value = db.feedDao().getLatest()
+        }
+    }
+
+    fun loadForEdit(id: Long) {
+        viewModelScope.launch {
+            _editRecord.value = db.feedDao().getById(id)
         }
     }
 
@@ -61,19 +70,54 @@ class FeedingViewModel(application: Application) : AndroidViewModel(application)
             onSuccess()
         }
     }
+
+    fun updateRecord(
+        record: FeedRecord, type: String, amount: Int, unit: String,
+        leftDuration: Int, rightDuration: Int,
+        side: String, note: String, onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            db.feedDao().update(
+                record.copy(
+                    type = type, amount = amount, unit = unit,
+                    leftDuration = leftDuration, rightDuration = rightDuration,
+                    side = side, note = note
+                )
+            )
+            onSuccess()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedingRecordScreen(
     navController: NavController,
+    editId: Long? = null,
     viewModel: FeedingViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val isEditMode = editId != null
+    val editRecord by viewModel.editRecord
+
+    LaunchedEffect(editId) {
+        if (editId != null) viewModel.loadForEdit(editId)
+    }
+
     var feedType by remember { mutableStateOf("breast") }
     var amount by remember { mutableStateOf("") }
     var side by remember { mutableStateOf("both") }
     var note by remember { mutableStateOf("") }
+
+    // 编辑模式回填数据
+    LaunchedEffect(editRecord) {
+        editRecord?.let { record ->
+            feedType = record.type
+            amount = if (record.amount > 0) record.amount.toString() else ""
+            side = record.side
+            note = record.note
+        }
+    }
 
     // 从持久化计时器读取状态
     val timerState by BreastfeedingTimer.state.collectAsState()
@@ -108,7 +152,11 @@ fun FeedingRecordScreen(
 
     Scaffold(
         topBar = {
-            BabyTopBar(title = "喂奶记录", subtitle = lastRecordSubtitle, onBack = { navController.popBackStack() })
+            BabyTopBar(
+                title = if (isEditMode) "编辑喂奶记录" else "喂奶记录",
+                subtitle = if (isEditMode) null else lastRecordSubtitle,
+                onBack = { navController.popBackStack() }
+            )
         }
     ) { padding ->
         Column(
@@ -237,30 +285,45 @@ fun FeedingRecordScreen(
             Spacer(modifier = Modifier.height(Spacing.lg))
 
             PrimaryButton(
-                text = "保存记录",
+                text = if (isEditMode) "保存修改" else "保存记录",
                 onClick = {
                     val now = System.currentTimeMillis()
-                    // 保存时如果计时器还在运行，先停止计时
-                    if (feedType == "breast" && timerState.isRunning) {
-                        BreastfeedingTimer.stop(context)
-                        FeedingTimerService.stop(context)
-                    }
-                    val leftDur = if (feedType == "breast") BreastfeedingTimer.getLeftTotalSeconds() / 60 else 0
-                    val rightDur = if (feedType == "breast") BreastfeedingTimer.getRightTotalSeconds() / 60 else 0
-                    val totalDur = leftDur + rightDur
-                    viewModel.saveRecord(
-                        type = feedType,
-                        amount = amount.toIntOrNull() ?: 0,
-                        unit = if (feedType == "breast") "min" else "ml",
-                        leftDuration = leftDur,
-                        rightDuration = rightDur,
-                        startTime = if (feedType == "breast") now - totalDur * 60000L else 0,
-                        endTime = if (feedType == "breast") now else 0,
-                        side = side, note = note
-                    ) {
-                        BreastfeedingTimer.reset(context)
-                        Toast.makeText(context, "喂奶记录已保存", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
+                    if (isEditMode && editRecord != null) {
+                        viewModel.updateRecord(
+                            record = editRecord!!,
+                            type = feedType,
+                            amount = amount.toIntOrNull() ?: 0,
+                            unit = if (feedType == "breast") "min" else "ml",
+                            leftDuration = editRecord!!.leftDuration,
+                            rightDuration = editRecord!!.rightDuration,
+                            side = side, note = note
+                        ) {
+                            Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
+                    } else {
+                        // 保存时如果计时器还在运行，先停止计时
+                        if (feedType == "breast" && timerState.isRunning) {
+                            BreastfeedingTimer.stop(context)
+                            FeedingTimerService.stop(context)
+                        }
+                        val leftDur = if (feedType == "breast") BreastfeedingTimer.getLeftTotalSeconds() / 60 else 0
+                        val rightDur = if (feedType == "breast") BreastfeedingTimer.getRightTotalSeconds() / 60 else 0
+                        val totalDur = leftDur + rightDur
+                        viewModel.saveRecord(
+                            type = feedType,
+                            amount = amount.toIntOrNull() ?: 0,
+                            unit = if (feedType == "breast") "min" else "ml",
+                            leftDuration = leftDur,
+                            rightDuration = rightDur,
+                            startTime = if (feedType == "breast") now - totalDur * 60000L else 0,
+                            endTime = if (feedType == "breast") now else 0,
+                            side = side, note = note
+                        ) {
+                            BreastfeedingTimer.reset(context)
+                            Toast.makeText(context, "喂奶记录已保存", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
                     }
                 }
             )

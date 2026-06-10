@@ -26,6 +26,8 @@ data class DaySummary(
 data class WeekDayStat(
     val dayLabel: String,
     val count: Int,
+    val totalMilk: Int = 0,
+    val sleepMinutes: Int = 0,
 )
 
 data class MonthDayStat(
@@ -201,7 +203,11 @@ class RecordsViewModel(application: Application) : AndroidViewModel(application)
                         dayCal.get(Calendar.YEAR), dayCal.get(Calendar.MONTH), dayCal.get(Calendar.DAY_OF_MONTH)
                     )
                     val dayCount = items.count { it.time in dayStart..dayEnd }
-                    WeekDayStat(dayLabels[index], dayCount)
+                    val dayFeeds = feeds.filter { it.recordTime in dayStart..dayEnd }
+                    val daySleeps = sleeps.filter { it.recordTime in dayStart..dayEnd }
+                    val dayMilk = dayFeeds.filter { it.type != "breast" }.sumOf { it.amount }
+                    val daySleep = daySleeps.sumOf { it.duration }
+                    WeekDayStat(dayLabels[index], dayCount, dayMilk, daySleep)
                 }
             }
 

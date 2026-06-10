@@ -128,7 +128,8 @@ fun LatestDataCard(latest: GrowthRecord?, gender: Int) {
             EmptyState(
                 icon = Icons.Outlined.TrendingUp,
                 title = "暂无记录",
-                subtitle = "点击右下角按钮添加第一条成长记录"
+                subtitle = "点击右下角按钮添加第一条成长记录",
+                emoji = "📏",
             )
         }
     }
@@ -200,7 +201,8 @@ fun GrowthCurveChart(records: List<GrowthRecord>, type: String, gender: Int) {
                 EmptyState(
                     icon = Icons.Outlined.TrendingUp,
                     title = "暂无数据",
-                    subtitle = "添加成长记录后即可查看曲线图"
+                    subtitle = "添加成长记录后即可查看曲线图",
+                    emoji = "📊",
                 )
             }
         }

@@ -145,7 +145,7 @@ fun QuickActionButton(
 }
 
 /**
- * 空状态组件
+ * 空状态组件 - 支持 emoji 插画
  */
 @Composable
 fun EmptyState(
@@ -153,6 +153,7 @@ fun EmptyState(
     title: String,
     subtitle: String? = null,
     modifier: Modifier = Modifier,
+    emoji: String? = null,
     actionText: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
@@ -162,19 +163,23 @@ fun EmptyState(
             .padding(vertical = Spacing.xxxl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(36.dp),
-                tint = MaterialTheme.colorScheme.primary,
-            )
+        if (emoji != null) {
+            Text(text = emoji, fontSize = 56.sp)
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(36.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
         Spacer(modifier = Modifier.height(Spacing.lg))
         Text(

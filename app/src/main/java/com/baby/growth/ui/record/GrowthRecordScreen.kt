@@ -35,9 +35,18 @@ class GrowthRecordViewModel(application: Application) : AndroidViewModel(applica
     private val _lastRecord = MutableStateFlow<GrowthRecord?>(null)
     val lastRecord: StateFlow<GrowthRecord?> = _lastRecord.asStateFlow()
 
+    private val _editRecord = MutableStateFlow<GrowthRecord?>(null)
+    val editRecord: StateFlow<GrowthRecord?> = _editRecord.asStateFlow()
+
     init {
         viewModelScope.launch {
             _lastRecord.value = db.growthDao().getLatest()
+        }
+    }
+
+    fun loadForEdit(id: Long) {
+        viewModelScope.launch {
+            _editRecord.value = db.growthDao().getById(id)
         }
     }
 
@@ -56,24 +65,54 @@ class GrowthRecordViewModel(application: Application) : AndroidViewModel(applica
             onSuccess()
         }
     }
+
+    fun updateRecord(
+        record: GrowthRecord, height: Float?, weight: Float?,
+        headCircumference: Float?, note: String, onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            db.growthDao().update(
+                record.copy(height = height, weight = weight, headCircumference = headCircumference, note = note)
+            )
+            onSuccess()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GrowthRecordScreen(
     navController: NavController,
+    editId: Long? = null,
     viewModel: GrowthRecordViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val isEditMode = editId != null
+    val editRecord by viewModel.editRecord.collectAsState()
     val lastRecord by viewModel.lastRecord.collectAsState()
+
+    LaunchedEffect(editId) {
+        if (editId != null) viewModel.loadForEdit(editId)
+    }
+
     var height by remember { mutableStateOf("") }
     var weight by remember { mutableStateOf("") }
     var headCircumference by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
 
+    // 编辑模式回填数据
+    LaunchedEffect(editRecord) {
+        editRecord?.let { record ->
+            height = record.height?.toString() ?: ""
+            weight = record.weight?.toString() ?: ""
+            headCircumference = record.headCircumference?.toString() ?: ""
+            note = record.note
+        }
+    }
+
     Scaffold(
         topBar = {
-            BabyTopBar(title = "成长指标", onBack = { navController.popBackStack() })
+            BabyTopBar(title = if (isEditMode) "编辑成长指标" else "成长指标", onBack = { navController.popBackStack() })
         }
     ) { padding ->
         Column(
@@ -121,16 +160,29 @@ fun GrowthRecordScreen(
             Spacer(modifier = Modifier.height(Spacing.md))
 
             PrimaryButton(
-                text = "保存记录",
+                text = if (isEditMode) "保存修改" else "保存记录",
                 onClick = {
-                    viewModel.saveRecord(
-                        height = height.toFloatOrNull(),
-                        weight = weight.toFloatOrNull(),
-                        headCircumference = headCircumference.toFloatOrNull(),
-                        note = note
-                    ) {
-                        Toast.makeText(context, "成长记录已保存", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
+                    if (isEditMode && editRecord != null) {
+                        viewModel.updateRecord(
+                            record = editRecord!!,
+                            height = height.toFloatOrNull(),
+                            weight = weight.toFloatOrNull(),
+                            headCircumference = headCircumference.toFloatOrNull(),
+                            note = note
+                        ) {
+                            Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
+                    } else {
+                        viewModel.saveRecord(
+                            height = height.toFloatOrNull(),
+                            weight = weight.toFloatOrNull(),
+                            headCircumference = headCircumference.toFloatOrNull(),
+                            note = note
+                        ) {
+                            Toast.makeText(context, "成长记录已保存", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

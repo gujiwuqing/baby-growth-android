@@ -27,6 +27,9 @@ interface FeedDao {
     @Query("SELECT * FROM feeds WHERE uniqueId = :uniqueId LIMIT 1")
     suspend fun getByUniqueId(uniqueId: String): FeedRecord?
 
+    @Query("SELECT * FROM feeds WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): FeedRecord?
+
     @Query("SELECT * FROM feeds ORDER BY recordTime DESC LIMIT 1")
     suspend fun getLatest(): FeedRecord?
 

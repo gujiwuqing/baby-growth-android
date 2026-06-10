@@ -51,19 +51,27 @@ class SupplementViewModel(application: Application) : AndroidViewModel(applicati
     private val _lastRecord = mutableStateOf<SupplementRecord?>(null)
     val lastRecord: State<SupplementRecord?> = _lastRecord
 
+    private val _editRecord = mutableStateOf<SupplementRecord?>(null)
+    val editRecord: State<SupplementRecord?> = _editRecord
+
     private val _recentItems = mutableStateOf<List<SupplementItem>>(emptyList())
     val recentItems: State<List<SupplementItem>> = _recentItems
 
     init {
         viewModelScope.launch {
             _lastRecord.value = db.supplementDao().getLatest()
-            // 加载最近添加的补剂（去重，最多5条）
             val allRecords = db.supplementDao().getAll().first()
             val recent = allRecords.take(10)
                 .map { SupplementItem(it.supplementName, it.dosage) }
                 .distinctBy { it.name + it.dosage }
                 .take(5)
             _recentItems.value = recent
+        }
+    }
+
+    fun loadForEdit(id: Long) {
+        viewModelScope.launch {
+            _editRecord.value = db.supplementDao().getById(id)
         }
     }
 
@@ -84,17 +92,35 @@ class SupplementViewModel(application: Application) : AndroidViewModel(applicati
             onSuccess()
         }
     }
+
+    fun updateRecord(
+        record: SupplementRecord, name: String, dosage: String, note: String, onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            db.supplementDao().update(
+                record.copy(supplementName = name, dosage = dosage, note = note)
+            )
+            onSuccess()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SupplementRecordScreen(
     navController: NavController,
+    editId: Long? = null,
     viewModel: SupplementViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val isEditMode = editId != null
+    val editRecord by viewModel.editRecord
     val lastRecord by viewModel.lastRecord
     val recentItems by viewModel.recentItems
+
+    LaunchedEffect(editId) {
+        if (editId != null) viewModel.loadForEdit(editId)
+    }
 
     val lastRecordSubtitle = lastRecord?.let { last ->
         val relativeTime = DateUtils.formatRelativeTime(last.recordTime)
@@ -121,7 +147,11 @@ fun SupplementRecordScreen(
 
     Scaffold(
         topBar = {
-            BabyTopBar(title = "营养补剂", subtitle = lastRecordSubtitle, onBack = { navController.popBackStack() })
+            BabyTopBar(
+                title = if (isEditMode) "编辑营养补剂" else "营养补剂",
+                subtitle = if (isEditMode) null else lastRecordSubtitle,
+                onBack = { navController.popBackStack() }
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
@@ -332,21 +362,32 @@ fun SupplementRecordScreen(
 
             // 底部保存按钮
             PrimaryButton(
-                text = "保存",
+                text = if (isEditMode) "保存修改" else "保存",
                 onClick = {
-                    // 如果输入框还有未添加的内容，也一并保存
-                    val finalItems = if (inputName.isNotBlank()) {
-                        supplementItems + SupplementItem(inputName, inputDosage)
+                    if (isEditMode && editRecord != null) {
+                        viewModel.updateRecord(
+                            record = editRecord!!,
+                            name = editRecord!!.supplementName,
+                            dosage = editRecord!!.dosage,
+                            note = note
+                        ) {
+                            Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
                     } else {
-                        supplementItems
-                    }
-                    if (finalItems.isEmpty()) {
-                        Toast.makeText(context, "请至少添加一条补剂", Toast.LENGTH_SHORT).show()
-                        return@PrimaryButton
-                    }
-                    viewModel.saveRecords(finalItems, note) {
-                        Toast.makeText(context, "营养记录已保存", Toast.LENGTH_SHORT).show()
-                        navController.popBackStack()
+                        val finalItems = if (inputName.isNotBlank()) {
+                            supplementItems + SupplementItem(inputName, inputDosage)
+                        } else {
+                            supplementItems
+                        }
+                        if (finalItems.isEmpty()) {
+                            Toast.makeText(context, "请至少添加一条补剂", Toast.LENGTH_SHORT).show()
+                            return@PrimaryButton
+                        }
+                        viewModel.saveRecords(finalItems, note) {
+                            Toast.makeText(context, "营养记录已保存", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
                     }
                 },
                 modifier = Modifier

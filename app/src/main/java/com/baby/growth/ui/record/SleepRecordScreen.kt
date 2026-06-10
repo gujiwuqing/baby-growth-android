@@ -38,9 +38,18 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
     private val _lastRecord = mutableStateOf<SleepRecord?>(null)
     val lastRecord: State<SleepRecord?> = _lastRecord
 
+    private val _editRecord = mutableStateOf<SleepRecord?>(null)
+    val editRecord: State<SleepRecord?> = _editRecord
+
     init {
         viewModelScope.launch {
             _lastRecord.value = db.sleepDao().getLatest()
+        }
+    }
+
+    fun loadForEdit(id: Long) {
+        viewModelScope.launch {
+            _editRecord.value = db.sleepDao().getById(id)
         }
     }
 
@@ -60,18 +69,51 @@ class SleepViewModel(application: Application) : AndroidViewModel(application) {
             onSuccess()
         }
     }
+
+    fun updateRecord(
+        record: SleepRecord, startTime: Long, endTime: Long, duration: Int,
+        quality: String, isNextDay: Int, note: String, onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            db.sleepDao().update(
+                record.copy(
+                    startTime = startTime, endTime = endTime,
+                    duration = duration, quality = quality,
+                    isNextDay = isNextDay, note = note
+                )
+            )
+            onSuccess()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SleepRecordScreen(
     navController: NavController,
+    editId: Long? = null,
     viewModel: SleepViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val isEditMode = editId != null
+    val editRecord by viewModel.editRecord
+
+    LaunchedEffect(editId) {
+        if (editId != null) viewModel.loadForEdit(editId)
+    }
+
     var mode by remember { mutableStateOf("timer") } // "timer" 或 "manual"
     var quality by remember { mutableStateOf("good") }
     var note by remember { mutableStateOf("") }
+
+    // 编辑模式回填数据
+    LaunchedEffect(editRecord) {
+        editRecord?.let { record ->
+            mode = "manual"
+            quality = record.quality
+            note = record.note
+        }
+    }
 
     // 手动模式变量
     var startHour by remember { mutableStateOf(22) }
@@ -110,7 +152,11 @@ fun SleepRecordScreen(
 
     Scaffold(
         topBar = {
-            BabyTopBar(title = "睡眠记录", subtitle = lastRecordSubtitle, onBack = { navController.popBackStack() })
+            BabyTopBar(
+                title = if (isEditMode) "编辑睡眠记录" else "睡眠记录",
+                subtitle = if (isEditMode) null else lastRecordSubtitle,
+                onBack = { navController.popBackStack() }
+            )
         }
     ) { padding ->
         Column(
@@ -291,9 +337,22 @@ fun SleepRecordScreen(
             Spacer(modifier = Modifier.height(Spacing.lg))
 
             PrimaryButton(
-                text = "保存记录",
+                text = if (isEditMode) "保存修改" else "保存记录",
                 onClick = {
-                    if (mode == "timer") {
+                    if (isEditMode && editRecord != null) {
+                        viewModel.updateRecord(
+                            record = editRecord!!,
+                            startTime = editRecord!!.startTime,
+                            endTime = editRecord!!.endTime,
+                            duration = editRecord!!.duration,
+                            quality = quality,
+                            isNextDay = editRecord!!.isNextDay,
+                            note = note
+                        ) {
+                            Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        }
+                    } else if (mode == "timer") {
                         // 计时模式: 停止计时并保存
                         if (timerState.isRunning) {
                             SleepTimer.stop(context)

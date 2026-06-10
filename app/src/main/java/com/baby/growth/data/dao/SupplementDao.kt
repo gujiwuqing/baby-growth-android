@@ -24,6 +24,9 @@ interface SupplementDao {
     @Query("SELECT * FROM supplements WHERE uniqueId = :uniqueId LIMIT 1")
     suspend fun getByUniqueId(uniqueId: String): SupplementRecord?
 
+    @Query("SELECT * FROM supplements WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): SupplementRecord?
+
     @Query("SELECT * FROM supplements ORDER BY recordTime DESC LIMIT 1")
     suspend fun getLatest(): SupplementRecord?
 

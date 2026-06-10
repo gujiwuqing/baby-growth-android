@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import com.baby.growth.data.entity.BabyInfo
 import com.baby.growth.ui.components.*
 import com.baby.growth.ui.theme.*
 import com.baby.growth.utils.DateUtils
@@ -38,9 +39,49 @@ fun HomeScreen(
     val babyInfo by viewModel.babyInfo.collectAsState()
     val todayStats by viewModel.todayStats.collectAsState()
     val recentRecords by viewModel.recentRecords.collectAsState()
+    val smartTips by viewModel.smartTips.collectAsState()
     var showDeleteDialog by remember { mutableStateOf<RecentRecord?>(null) }
 
+    var showWelcomeGuide by remember { mutableStateOf(false) }
+
+    LaunchedEffect(babyInfo) {
+        if (babyInfo != null && babyInfo!!.name.isEmpty()) {
+            showWelcomeGuide = true
+        }
+    }
+
     LaunchedEffect(Unit) { viewModel.loadData() }
+
+    // 新用户欢迎引导
+    if (showWelcomeGuide) {
+        AlertDialog(
+            onDismissRequest = { showWelcomeGuide = false },
+            title = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text("👶", fontSize = 48.sp)
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    Text("欢迎使用宝宝成长", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Text(
+                    "记录宝宝的每一个珍贵瞬间\n\n先设置宝宝的信息，让我们更好地为您服务",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showWelcomeGuide = false
+                    navController.navigate("profile")
+                }) { Text("去设置", fontWeight = FontWeight.SemiBold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWelcomeGuide = false }) { Text("稍后再说") }
+            },
+            shape = RoundedCornerShape(Radius.xl),
+        )
+    }
 
     if (showDeleteDialog != null) {
         AlertDialog(
@@ -67,7 +108,21 @@ fun HomeScreen(
         contentPadding = PaddingValues(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        
+        // 宝宝信息卡片
+        item {
+            BabyInfoHeader(
+                babyInfo = babyInfo,
+                lastFeedTime = todayStats.let { null },
+                onProfileClick = { navController.navigate("profile") }
+            )
+        }
+
+        // 智能提示
+        if (smartTips.isNotEmpty()) {
+            item {
+                SmartTipsBanner(tips = smartTips)
+            }
+        }
 
         // 今日统计卡片
         item { TodayStatsCard(todayStats) }
@@ -99,6 +154,7 @@ fun HomeScreen(
                     icon = Icons.Outlined.EventNote,
                     title = "还没有记录",
                     subtitle = "点击上方快捷入口，开始记录宝宝的每一天吧",
+                    emoji = "📝",
                 )
             }
         } else {
@@ -269,4 +325,102 @@ private fun QuickRecordGrid(navController: NavController) {
     }
 }
 
+/**
+ * 宝宝信息头部卡片
+ */
+@Composable
+private fun BabyInfoHeader(
+    babyInfo: BabyInfo?,
+    lastFeedTime: Long?,
+    onProfileClick: () -> Unit
+) {
+    BabyCard(
+        cornerRadius = Radius.xl,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onProfileClick() },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // 头像
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(Radius.lg))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = babyInfo?.avatar ?: "👶",
+                    fontSize = 28.sp,
+                )
+            }
 
+            Spacer(modifier = Modifier.width(Spacing.md))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = babyInfo?.name?.ifEmpty { "设置宝宝信息" } ?: "设置宝宝信息",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                if (babyInfo != null && babyInfo.name.isNotEmpty()) {
+                    val monthAge = DateUtils.getMonthAge(babyInfo.birthday)
+                    val dayAge = DateUtils.getDayAge(babyInfo.birthday)
+                    val ageText = if (monthAge > 0) "${monthAge}个月${dayAge % 30}天" else "${dayAge}天"
+                    Text(
+                        text = ageText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Text(
+                        text = "点击录入宝宝的生日和昵称 →",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
+            // 右侧装饰
+            Icon(
+                imageVector = Icons.Filled.ChevronRight,
+                contentDescription = "编辑",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+/**
+ * 智能提示横幅
+ */
+@Composable
+private fun SmartTipsBanner(tips: List<SmartTip>) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        tips.forEach { tip ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(Radius.md))
+                    .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f))
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = tip.emoji, fontSize = 16.sp)
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                Text(
+                    text = tip.message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+        }
+    }
+}
