@@ -164,4 +164,109 @@ object DateUtils {
             else -> formatDate(timestamp)
         }
     }
+
+    /** 基于指定日期获取所在周(周一到周日)的起止时间戳 */
+    fun getWeekRangeForDate(timestamp: Long): Pair<Long, Long> {
+        val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
+        cal.firstDayOfWeek = Calendar.MONDAY
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+        val start = getDayStart(cal)
+        cal.add(Calendar.DAY_OF_WEEK, 6)
+        val end = getDayEnd(cal)
+        return start to end
+    }
+
+    /** 格式化短日期，如 "06.08" */
+    private val shortDateFormat = SimpleDateFormat("MM.dd", Locale.getDefault())
+    fun formatShortDate(timestamp: Long): String = shortDateFormat.format(Date(timestamp))
+
+    /** 格式化日视图日期标题："今天 · 2026年6月10日" */
+    fun formatDayTitle(timestamp: Long): String {
+        val todayCal = Calendar.getInstance()
+        val targetCal = Calendar.getInstance().apply { timeInMillis = timestamp }
+        val prefix = when {
+            todayCal.get(Calendar.YEAR) == targetCal.get(Calendar.YEAR) &&
+            todayCal.get(Calendar.DAY_OF_YEAR) == targetCal.get(Calendar.DAY_OF_YEAR) -> "今天"
+            else -> {
+                val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+                if (yesterdayCal.get(Calendar.YEAR) == targetCal.get(Calendar.YEAR) &&
+                    yesterdayCal.get(Calendar.DAY_OF_YEAR) == targetCal.get(Calendar.DAY_OF_YEAR))
+                    "昨天" else null
+            }
+        }
+        val fullDate = SimpleDateFormat("yyyy年M月d日", Locale.getDefault()).format(Date(timestamp))
+        return if (prefix != null) "$prefix · $fullDate" else fullDate
+    }
+
+    /** 格式化周视图日期标题："06.08 - 06.14" */
+    fun formatWeekTitle(timestamp: Long): String {
+        val (start, end) = getWeekRangeForDate(timestamp)
+        return "${formatShortDate(start)} - ${formatShortDate(end)}"
+    }
+
+    /** 获取指定周每天的时间戳列表(周一到周日) */
+    fun getWeekDays(timestamp: Long): List<Long> {
+        val (start, _) = getWeekRangeForDate(timestamp)
+        val cal = Calendar.getInstance().apply { timeInMillis = start }
+        return (0..6).map {
+            val dayTimestamp = cal.timeInMillis
+            cal.add(Calendar.DAY_OF_MONTH, 1)
+            dayTimestamp
+        }
+    }
+
+    /** 获取月视图的日历数据：包含上月尾部 + 当月 + 下月头部，共6行7列 */
+    fun getMonthCalendarDays(year: Int, month: Int): List<CalendarDay> {
+        val result = mutableListOf<CalendarDay>()
+        val cal = Calendar.getInstance().apply {
+            set(year, month, 1, 0, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        // 本月1号是周几（转为周一=0的索引）
+        val firstDayOfWeek = (cal.get(Calendar.DAY_OF_WEEK) + 5) % 7
+        val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+        // 上月尾部
+        if (firstDayOfWeek > 0) {
+            val prevCal = Calendar.getInstance().apply {
+                set(year, month, 1)
+                add(Calendar.DAY_OF_MONTH, -firstDayOfWeek)
+            }
+            for (i in 0 until firstDayOfWeek) {
+                result.add(CalendarDay(prevCal.get(Calendar.DAY_OF_MONTH), prevCal.timeInMillis, isCurrentMonth = false))
+                prevCal.add(Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+
+        // 当月
+        val monthCal = Calendar.getInstance().apply { set(year, month, 1, 0, 0, 0) }
+        for (day in 1..daysInMonth) {
+            monthCal.set(Calendar.DAY_OF_MONTH, day)
+            result.add(CalendarDay(day, monthCal.timeInMillis, isCurrentMonth = true))
+        }
+
+        // 下月头部，补齐到完整行(7的倍数)
+        val remaining = (7 - result.size % 7) % 7
+        val nextCal = Calendar.getInstance().apply { set(year, month + 1, 1, 0, 0, 0) }
+        for (i in 0 until remaining) {
+            result.add(CalendarDay(nextCal.get(Calendar.DAY_OF_MONTH), nextCal.timeInMillis, isCurrentMonth = false))
+            nextCal.add(Calendar.DAY_OF_MONTH, 1)
+        }
+
+        return result
+    }
+
+    /** 判断两个时间戳是否是同一天 */
+    fun isSameDay(timestamp1: Long, timestamp2: Long): Boolean {
+        val cal1 = Calendar.getInstance().apply { timeInMillis = timestamp1 }
+        val cal2 = Calendar.getInstance().apply { timeInMillis = timestamp2 }
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+    }
 }
+
+data class CalendarDay(
+    val day: Int,
+    val timestamp: Long,
+    val isCurrentMonth: Boolean
+)
