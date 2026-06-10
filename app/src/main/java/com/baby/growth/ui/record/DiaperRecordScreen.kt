@@ -1,21 +1,15 @@
 package com.baby.growth.ui.record
 
 import android.app.Application
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
 import android.widget.Toast
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,6 +20,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.baby.growth.BabyGrowthApp
 import com.baby.growth.data.entity.DiaperRecord
+import com.baby.growth.ui.components.BabyTopBar
+import com.baby.growth.ui.components.FilterTag
+import com.baby.growth.ui.components.PrimaryButton
+import com.baby.growth.ui.theme.BabyGrowthTheme
+import com.baby.growth.ui.theme.Radius
+import com.baby.growth.ui.theme.Spacing
 import com.baby.growth.utils.DateUtils
 import com.baby.growth.utils.RecordTypes
 import kotlinx.coroutines.launch
@@ -60,7 +60,6 @@ class DiaperViewModel(application: Application) : AndroidViewModel(application) 
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiaperRecordScreen(
     navController: NavController,
@@ -78,50 +77,45 @@ fun DiaperRecordScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("纸尿裤记录")
-                        if (lastRecord != null) {
-                            val relativeTime = DateUtils.formatRelativeTime(lastRecord!!.recordTime)
-                            Text("上次：$relativeTime", fontSize = 11.sp, fontWeight = FontWeight.Normal)
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+            BabyTopBar(
+                title = "换尿布",
+                onBack = { navController.popBackStack() }
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             // 类型选择
             Text("类型", fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 listOf("pee" to "💧 小便", "poo" to "💩 大便", "both" to "混合").forEach { (value, label) ->
-                    FilterChip(selected = diaperType == value, onClick = {
-                        diaperType = value
-                        if (value == "pee") { pooColor = ""; pooShape = "" }
-                    }, label = { Text(label) })
+                    FilterTag(
+                        text = label,
+                        selected = diaperType == value,
+                        onClick = {
+                            diaperType = value
+                            if (value == "pee") { pooColor = ""; pooShape = "" }
+                        }
+                    )
                 }
             }
 
             // 红屁屁开关
             Text("红屁屁", fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = !hasRash, onClick = { hasRash = false }, label = { Text("正常") })
-                FilterChip(selected = hasRash, onClick = { hasRash = true }, label = { Text("有红屁屁 😣") })
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FilterTag(
+                    text = "正常",
+                    selected = !hasRash,
+                    onClick = { hasRash = false }
+                )
+                FilterTag(
+                    text = "有红屁屁 😣",
+                    selected = hasRash,
+                    onClick = { hasRash = true }
+                )
             }
 
             // 大便颜色选择（仅大便/混合时显示）
@@ -129,34 +123,27 @@ fun DiaperRecordScreen(
                 Text("大便颜色", fontWeight = FontWeight.Bold)
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
                     RecordTypes.POO_COLORS.forEach { (name, hexColor) ->
-                        FilterChip(
+                        FilterTag(
+                            text = name,
                             selected = pooColor == name,
-                            onClick = { pooColor = name },
-                            label = {
-                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp)) {
-                                    Box(modifier = Modifier.size(10.dp).clip(CircleShape)
-                                        .background(Color(hexColor.removePrefix("#").toLong(16) or 0xFF000000)))
-                                    Text(name, fontSize = 12.sp)
-                                }
-                            }
+                            onClick = { pooColor = name }
                         )
                     }
                 }
 
                 // 大便形状选择
                 Text("大便形状", fontWeight = FontWeight.Bold)
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     RecordTypes.POO_SHAPES.chunked(5).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             row.forEach { shape ->
-                                FilterChip(
+                                FilterTag(
+                                    text = shape,
                                     selected = pooShape == shape,
-                                    onClick = { pooShape = shape },
-                                    label = { Text(shape, fontSize = 12.sp) }
+                                    onClick = { pooShape = shape }
                                 )
                             }
                         }
@@ -167,12 +154,13 @@ fun DiaperRecordScreen(
             OutlinedTextField(
                 value = note, onValueChange = { note = it },
                 label = { Text("备注") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp), minLines = 2
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(Radius.md), minLines = 2
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.lg))
 
-            Button(
+            PrimaryButton(
+                text = "保存记录",
                 onClick = {
                     viewModel.saveRecord(
                         type = diaperType,
@@ -185,10 +173,8 @@ fun DiaperRecordScreen(
                         Toast.makeText(context, "尿布记录已保存", Toast.LENGTH_SHORT).show()
                         navController.popBackStack()
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) { Text("保存记录", fontWeight = FontWeight.Bold) }
+                }
+            )
         }
     }
 }

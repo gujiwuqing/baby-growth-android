@@ -5,26 +5,37 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.*
 import android.widget.Toast
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.baby.growth.BabyGrowthApp
 import com.baby.growth.data.entity.FoodRecord
+import com.baby.growth.ui.components.BabyTopBar
+import com.baby.growth.ui.components.FilterTag
+import com.baby.growth.ui.components.PrimaryButton
+import com.baby.growth.ui.theme.Radius
+import com.baby.growth.ui.theme.Spacing
 import com.baby.growth.utils.DateUtils
 import kotlinx.coroutines.launch
 
 class FoodViewModel(application: Application) : AndroidViewModel(application) {
     private val db = (application as BabyGrowthApp).database
+
+    private val _lastRecord = mutableStateOf<FoodRecord?>(null)
+    val lastRecord: State<FoodRecord?> = _lastRecord
+
+    init {
+        viewModelScope.launch {
+            _lastRecord.value = db.foodDao().getLatest()
+        }
+    }
 
     fun saveRecord(
         foodName: String, category: String, amount: String, unit: String,
@@ -44,13 +55,20 @@ class FoodViewModel(application: Application) : AndroidViewModel(application) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FoodRecordScreen(
     navController: NavController,
     viewModel: FoodViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val lastRecord by viewModel.lastRecord
+
+    val lastRecordSubtitle = lastRecord?.let { last ->
+        val relativeTime = DateUtils.formatRelativeTime(last.recordTime)
+        val detail = "${last.foodName} ${last.amount}${last.unit}"
+        "上次：$detail，$relativeTime"
+    }
+
     var foodName by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("grain") }
     var amount by remember { mutableStateOf("") }
@@ -60,87 +78,94 @@ fun FoodRecordScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("辅食记录") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+            BabyTopBar(
+                title = "辅食记录",
+                subtitle = lastRecordSubtitle,
+                onBack = { navController.popBackStack() }
             )
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             OutlinedTextField(
                 value = foodName, onValueChange = { foodName = it },
                 label = { Text("食物名称") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(Radius.md)
             )
 
             Text("食物分类", fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 listOf("grain" to "谷物", "vegetable" to "蔬菜", "fruit" to "水果").forEach { (v, l) ->
-                    FilterChip(selected = category == v, onClick = { category = v }, label = { Text(l) })
+                    FilterTag(
+                        text = l,
+                        selected = category == v,
+                        onClick = { category = v }
+                    )
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 listOf("meat" to "肉类", "egg" to "蛋类", "dairy" to "奶制品").forEach { (v, l) ->
-                    FilterChip(selected = category == v, onClick = { category = v }, label = { Text(l) })
+                    FilterTag(
+                        text = l,
+                        selected = category == v,
+                        onClick = { category = v }
+                    )
                 }
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 OutlinedTextField(
                     value = amount, onValueChange = { amount = it },
                     label = { Text("食用量") }, modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(Radius.md)
                 )
             }
 
             Text("单位", fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 listOf("g", "ml", "勺", "个", "片").forEach { u ->
-                    FilterChip(selected = unit == u, onClick = { unit = u }, label = { Text(u) })
+                    FilterTag(
+                        text = u,
+                        selected = unit == u,
+                        onClick = { unit = u }
+                    )
                 }
             }
 
             Text("反应", fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 listOf("normal" to "✅ 正常", "allergy" to "⚠️ 过敏", "refuse" to "❌ 拒绝").forEach { (v, l) ->
-                    FilterChip(selected = reaction == v, onClick = { reaction = v }, label = { Text(l) })
+                    FilterTag(
+                        text = l,
+                        selected = reaction == v,
+                        onClick = { reaction = v }
+                    )
                 }
             }
 
             OutlinedTextField(
                 value = note, onValueChange = { note = it },
                 label = { Text("备注") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp), minLines = 2
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(Radius.md), minLines = 2
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.lg))
 
-            Button(
+            PrimaryButton(
+                text = "保存记录",
                 onClick = {
                     viewModel.saveRecord(foodName, category, amount, unit, reaction, note) {
                         Toast.makeText(context, "辅食记录已保存", Toast.LENGTH_SHORT).show()
                         navController.popBackStack()
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) { Text("保存记录", fontWeight = FontWeight.Bold) }
+                }
+            )
         }
     }
 }

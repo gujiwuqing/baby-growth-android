@@ -16,18 +16,24 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.baby.growth.BabyGrowthApp
 import com.baby.growth.data.entity.SupplementRecord
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.baby.growth.ui.components.BabyTopBar
+import com.baby.growth.ui.components.BabyCard
+import com.baby.growth.ui.components.PrimaryButton
+import com.baby.growth.ui.components.FilterTag
+import com.baby.growth.ui.theme.Spacing
+import com.baby.growth.ui.theme.Radius
 import com.baby.growth.utils.DateUtils
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -90,6 +96,13 @@ fun SupplementRecordScreen(
     val lastRecord by viewModel.lastRecord
     val recentItems by viewModel.recentItems
 
+    val lastRecordSubtitle = lastRecord?.let { last ->
+        val relativeTime = DateUtils.formatRelativeTime(last.recordTime)
+        val nameLabel = last.supplementName.ifEmpty { last.supplementType }
+        val detail = if (last.dosage.isNotEmpty()) "$nameLabel ${last.dosage}" else nameLabel
+        "上次：$detail，$relativeTime"
+    }
+
     // 当前添加的补剂列表
     var supplementItems by remember { mutableStateOf(listOf<SupplementItem>()) }
     var inputName by remember { mutableStateOf("") }
@@ -108,30 +121,9 @@ fun SupplementRecordScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("营养补剂", fontSize = 17.sp, fontWeight = FontWeight.Medium)
-                        if (lastRecord != null) {
-                            Text(
-                                "上次：${DateUtils.formatRelativeTime(lastRecord!!.recordTime)}",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.Close, contentDescription = "关闭")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
-                )
-            )
+            BabyTopBar(title = "营养补剂", subtitle = lastRecordSubtitle, onBack = { navController.popBackStack() })
         },
-        containerColor = Color(0xFFF5F5F5)
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -143,19 +135,14 @@ fun SupplementRecordScreen(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // 白色卡片区域
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
+                BabyCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        modifier = Modifier.padding(Spacing.lg),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         // 开始时间
                         Row(
@@ -166,12 +153,12 @@ fun SupplementRecordScreen(
                             Text("开始时间", fontWeight = FontWeight.Medium, fontSize = 15.sp)
                             Text(
                                 "$dateTimeText >",
-                                color = Color.Gray,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                 fontSize = 14.sp
                             )
                         }
 
-                        HorizontalDivider(color = Color(0xFFF0F0F0))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                         // 营养补剂标题 + 添加按钮
                         Row(
@@ -189,11 +176,11 @@ fun SupplementRecordScreen(
                                     }
                                 },
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(Radius.lg),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(Spacing.xs))
                                 Text("添加", fontSize = 13.sp)
                             }
                         }
@@ -202,14 +189,14 @@ fun SupplementRecordScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFFF8F8F8), RoundedCornerShape(8.dp))
-                                .padding(12.dp),
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(Radius.sm))
+                                .padding(Spacing.sm),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedTextField(
                                 value = inputName,
                                 onValueChange = { inputName = it },
-                                placeholder = { Text("输入补剂名称", color = Color.Gray, fontSize = 14.sp) },
+                                placeholder = { Text("输入补剂名称", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp) },
                                 modifier = Modifier.weight(1f),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     unfocusedBorderColor = Color.Transparent,
@@ -224,12 +211,12 @@ fun SupplementRecordScreen(
                                 modifier = Modifier
                                     .width(1.dp)
                                     .height(20.dp)
-                                    .background(Color(0xFFE0E0E0))
+                                    .background(MaterialTheme.colorScheme.outlineVariant)
                             )
                             OutlinedTextField(
                                 value = inputDosage,
                                 onValueChange = { inputDosage = it },
-                                placeholder = { Text("用量", color = Color.Gray, fontSize = 14.sp) },
+                                placeholder = { Text("用量", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp) },
                                 modifier = Modifier.width(100.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     unfocusedBorderColor = Color.Transparent,
@@ -246,32 +233,32 @@ fun SupplementRecordScreen(
                                     modifier = Modifier.size(20.dp)
                                 ) {
                                     Icon(Icons.Default.Close, contentDescription = "清除",
-                                        modifier = Modifier.size(16.dp), tint = Color.Gray)
+                                        modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
 
                         // 常见补剂标签
-                        Text("常见补剂", fontSize = 13.sp, color = Color.Gray)
+                        Text("常见补剂", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             commonSupplements.forEach { name ->
-                                SuggestionChip(
-                                    onClick = { inputName = name },
-                                    label = { Text(name, fontSize = 13.sp) },
-                                    shape = RoundedCornerShape(16.dp)
+                                FilterTag(
+                                    text = name,
+                                    selected = false,
+                                    onClick = { inputName = name }
                                 )
                             }
                         }
 
                         // 最近添加
                         if (recentItems.isNotEmpty()) {
-                            Text("最近添加", fontSize = 13.sp, color = Color.Gray)
+                            Text("最近添加", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
                                 recentItems.forEach { item ->
                                     val displayName = when (item.name) {
@@ -280,14 +267,12 @@ fun SupplementRecordScreen(
                                         "iron" -> "铁"; "zinc" -> "锌"
                                         else -> item.name
                                     }
-                                    SuggestionChip(
+                                    FilterTag(
+                                        text = "$displayName｜${item.dosage}",
+                                        selected = false,
                                         onClick = {
                                             supplementItems = supplementItems + item
-                                        },
-                                        label = {
-                                            Text("$displayName｜${item.dosage}", fontSize = 13.sp)
-                                        },
-                                        shape = RoundedCornerShape(16.dp)
+                                        }
                                     )
                                 }
                             }
@@ -295,8 +280,8 @@ fun SupplementRecordScreen(
 
                         // 已添加的补剂列表
                         if (supplementItems.isNotEmpty()) {
-                            HorizontalDivider(color = Color(0xFFF0F0F0))
-                            Text("已添加", fontSize = 13.sp, color = Color.Gray)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            Text("已添加", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             supplementItems.forEachIndexed { index, item ->
                                 val displayName = when (item.name) {
                                     "AD" -> "维生素AD"; "D3" -> "维生素D3"
@@ -317,7 +302,7 @@ fun SupplementRecordScreen(
                                         modifier = Modifier.size(20.dp)
                                     ) {
                                         Icon(Icons.Default.Close, contentDescription = "删除",
-                                            modifier = Modifier.size(14.dp), tint = Color.Gray)
+                                            modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             }
@@ -332,7 +317,7 @@ fun SupplementRecordScreen(
                         onValueChange = { note = it },
                         label = { Text("备注") },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(Radius.md),
                         minLines = 2
                     )
                 } else {
@@ -340,13 +325,14 @@ fun SupplementRecordScreen(
                         onClick = { showNoteField = true },
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
-                        Text("📷 备注", fontSize = 14.sp, color = Color.Gray)
+                        Text("📷 备注", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
 
             // 底部保存按钮
-            Button(
+            PrimaryButton(
+                text = "保存",
                 onClick = {
                     // 如果输入框还有未添加的内容，也一并保存
                     val finalItems = if (inputName.isNotBlank()) {
@@ -356,7 +342,7 @@ fun SupplementRecordScreen(
                     }
                     if (finalItems.isEmpty()) {
                         Toast.makeText(context, "请至少添加一条补剂", Toast.LENGTH_SHORT).show()
-                        return@Button
+                        return@PrimaryButton
                     }
                     viewModel.saveRecords(finalItems, note) {
                         Toast.makeText(context, "营养记录已保存", Toast.LENGTH_SHORT).show()
@@ -365,15 +351,8 @@ fun SupplementRecordScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                    .height(50.dp),
-                shape = RoundedCornerShape(25.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text("保存", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
+                    .padding(horizontal = Spacing.lg, vertical = Spacing.md)
+            )
         }
     }
 }

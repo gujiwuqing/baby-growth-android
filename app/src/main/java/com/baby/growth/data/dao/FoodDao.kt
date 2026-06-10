@@ -24,6 +24,9 @@ interface FoodDao {
     @Query("SELECT * FROM foods WHERE uniqueId = :uniqueId LIMIT 1")
     suspend fun getByUniqueId(uniqueId: String): FoodRecord?
 
+    @Query("SELECT * FROM foods ORDER BY recordTime DESC LIMIT 1")
+    suspend fun getLatest(): FoodRecord?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(record: FoodRecord): Long
 

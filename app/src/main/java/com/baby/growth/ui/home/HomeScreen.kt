@@ -1,30 +1,35 @@
 package com.baby.growth.ui.home
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import com.baby.growth.ui.components.*
 import com.baby.growth.ui.theme.*
 import com.baby.growth.utils.DateUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     navController: NavController,
@@ -40,7 +45,7 @@ fun HomeScreen(
     if (showDeleteDialog != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
-            title = { Text("确认删除") },
+            title = { Text("确认删除", fontWeight = FontWeight.SemiBold) },
             text = { Text("是否删除这条${showDeleteDialog!!.title}记录？") },
             confirmButton = {
                 TextButton(onClick = {
@@ -48,225 +53,220 @@ fun HomeScreen(
                     showDeleteDialog = null
                 }) { Text("删除", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = null }) { Text("取消") }
-            }
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) { Text("取消") }
+            },
+            shape = RoundedCornerShape(Radius.xl),
         )
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentPadding = PaddingValues(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
+        
+
+        // 今日统计卡片
         item { TodayStatsCard(todayStats) }
-        item { QuickRecordCard(navController) }
+
+        // 快捷记录
+        item { QuickRecordGrid(navController) }
+
+        // 最近记录
         item {
-            Text(
-                text = "最近记录",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 8.dp)
+            SectionHeader(
+                title = "最近记录",
+                trailing = {
+                    TextButton(onClick = {
+                        navController.navigate("records") {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }) {
+                        Text("查看全部", style = MaterialTheme.typography.labelMedium)
+                    }
+                },
             )
         }
+
         if (recentRecords.isEmpty()) {
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("暂无记录，点击上方快捷入口开始记录吧~", color = TextHint)
-                    }
-                }
+                EmptyState(
+                    icon = Icons.Outlined.EventNote,
+                    title = "还没有记录",
+                    subtitle = "点击上方快捷入口，开始记录宝宝的每一天吧",
+                )
             }
         } else {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                        recentRecords.forEachIndexed { index, record ->
-                            RecentRecordItem(
-                                record = record,
-                                isLast = index == recentRecords.lastIndex,
-                                onLongClick = { showDeleteDialog = record }
-                            )
-                        }
-                    }
-                }
+            itemsIndexed(recentRecords) { index, record ->
+                TimelineItem(
+                    time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(record.time)),
+                    title = record.title,
+                    subtitle = record.detail.split("\n").firstOrNull() ?: "",
+                    typeKey = record.type,
+                    isLast = index == recentRecords.lastIndex,
+                    onLongClick = { showDeleteDialog = record },
+                )
             }
+        }
+
+        // 底部安全区
+        item { Spacer(modifier = Modifier.height(Spacing.xl)) }
+    }
+}
+
+
+
+/**
+ * 今日统计卡片 - 全新设计
+ */
+@Composable
+private fun TodayStatsCard(stats: TodayStats) {
+    BabyAccentCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "今日概览",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Text(
+                text = SimpleDateFormat("M月d日 EEEE", Locale.CHINESE).format(Date()),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+            )
+        }
+        Spacer(modifier = Modifier.height(Spacing.lg))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            HomeStatItem(
+                icon = Icons.Outlined.Restaurant,
+                value = "${stats.feedCount}",
+                label = "喂奶",
+                color = RecordColor.Breast,
+            )
+            HomeStatItem(
+                icon = Icons.Outlined.BabyChangingStation,
+                value = "${stats.diaperCount}",
+                label = "尿布",
+                color = RecordColor.Diaper,
+            )
+            HomeStatItem(
+                icon = Icons.Outlined.Bedtime,
+                value = DateUtils.formatDuration(stats.sleepMinutes),
+                label = "睡眠",
+                color = RecordColor.Sleep,
+            )
+        }
+        Spacer(modifier = Modifier.height(Spacing.md))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            HomeStatItem(
+                icon = Icons.Outlined.RiceBowl,
+                value = "${stats.foodCount}",
+                label = "辅食",
+                color = RecordColor.Food,
+            )
+            HomeStatItem(
+                icon = Icons.Outlined.Medication,
+                value = "${stats.supplementCount}",
+                label = "营养",
+                color = RecordColor.Supplement,
+            )
+            HomeStatItem(
+                icon = Icons.Outlined.WaterDrop,
+                value = "${stats.totalMilk}ml",
+                label = "奶量",
+                color = RecordColor.Formula,
+            )
         }
     }
 }
 
-
-
 @Composable
-fun TodayStatsCard(stats: TodayStats) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "今日统计", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                StatItem("🤱", "喂奶", "${stats.feedCount}次")
-                StatItem("👶", "尿布", "${stats.diaperCount}次")
-                StatItem("😴", "睡眠", DateUtils.formatDuration(stats.sleepMinutes))
-                StatItem("🥣", "辅食", "${stats.foodCount}次")
-                StatItem("💊", "营养", "${stats.supplementCount}次")
-                StatItem("🍼", "奶量", "${stats.totalMilk}ml")
-            }
-        }
-    }
-}
-
-@Composable
-fun StatItem(emoji: String, label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = emoji, fontSize = 22.sp)
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = value, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Text(text = label, color = TextSecondary, fontSize = 12.sp)
-    }
-}
-
-@Composable
-fun QuickRecordCard(navController: NavController) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "快捷记录", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                QuickButton("🤱", "母乳", MaterialTheme.colorScheme.primary) { navController.navigate("record/feeding") }
-                QuickButton("🍼", "配方奶", Color(0xFF5B8DEF)) { navController.navigate("record/feeding") }
-                QuickButton("👶", "尿布", Color(0xFFFFB74D)) { navController.navigate("record/diaper") }
-                QuickButton("😴", "睡眠", Color(0xFF7986CB)) { navController.navigate("record/sleep") }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                QuickButton("🥣", "辅食", Mint40) { navController.navigate("record/food") }
-                QuickButton("💊", "营养", Color(0xFFBA68C8)) { navController.navigate("record/supplement") }
-                QuickButton("📏", "成长", Color(0xFF4DB6AC)) { navController.navigate("record/growth") }
-                QuickButton("💉", "疫苗", Color(0xFFE57373)) { navController.navigate("vaccine") }
-            }
-        }
-    }
-}
-
-@Composable
-fun QuickButton(emoji: String, label: String, color: Color, onClick: () -> Unit) {
+private fun HomeStatItem(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    color: Color,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier.width(80.dp),
     ) {
-        Box(
-            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp))
-                .background(color.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(text = emoji, fontSize = 22.sp)
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, fontSize = 12.sp, color = TextSecondary)
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun RecentRecordItem(record: RecentRecord, isLast: Boolean = false, onLongClick: () -> Unit) {
-    val dotColor = when (record.type) {
-        "breast", "formula", "bottle" -> Color(0xFFFF8A9B)
-        "sleep" -> Color(0xFF7986CB)
-        "diaper" -> Color(0xFFFFB74D)
-        "food" -> Color(0xFF66BB6A)
-        "supplement" -> Color(0xFF42A5F5)
-        "growth" -> Color(0xFFEC407A)
-        else -> Color(0xFFBDBDBD)
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(onClick = {}, onLongClick = onLongClick)
-            .padding(vertical = 2.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        // 左侧时间
-        Text(
-            text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(record.time)),
-            color = TextSecondary,
-            fontSize = 13.sp,
-            modifier = Modifier.width(44.dp).padding(top = 4.dp)
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            modifier = Modifier.size(20.dp),
+            tint = color,
         )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+        )
+    }
+}
 
-        // 中间时间线：圆点 + 竖线
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 8.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .padding(top = 6.dp)
-                    .clip(CircleShape)
-                    .background(dotColor)
-            )
-            if (!isLast) {
-                Box(
-                    modifier = Modifier
-                        .width(1.5.dp)
-                        .height(48.dp)
-                        .background(Color(0xFFE8E8E8))
-                )
-            }
-        }
-
-        // 右侧内容
+/**
+ * 快捷记录入口 - 网格布局
+ */
+@Composable
+private fun QuickRecordGrid(navController: NavController) {
+    BabyCard {
+        Text(
+            text = "快捷记录",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(modifier = Modifier.height(Spacing.md))
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 8.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.Top
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            Text(text = record.icon, fontSize = 20.sp)
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = record.title,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp,
-                    color = OnBackground
-                )
-                if (record.detail.isNotEmpty()) {
-                    val lines = record.detail.split("\n")
-                    Text(
-                        text = lines.first(),
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        maxLines = 1
-                    )
-                    if (lines.size > 1) {
-                        Text(
-                            text = lines[1],
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 11.sp
-                        )
-                    }
-                }
-            }
+            QuickActionButton(Icons.Outlined.Restaurant, "母乳", RecordColor.Breast,
+                onClick = { navController.navigate("record/feeding") })
+            QuickActionButton(Icons.Outlined.LocalDrink, "配方奶", RecordColor.Formula,
+                onClick = { navController.navigate("record/feeding") })
+            QuickActionButton(Icons.Outlined.BabyChangingStation, "尿布", RecordColor.Diaper,
+                onClick = { navController.navigate("record/diaper") })
+            QuickActionButton(Icons.Outlined.Bedtime, "睡眠", RecordColor.Sleep,
+                onClick = { navController.navigate("record/sleep") })
+        }
+        Spacer(modifier = Modifier.height(Spacing.md))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            QuickActionButton(Icons.Outlined.RiceBowl, "辅食", RecordColor.Food,
+                onClick = { navController.navigate("record/food") })
+            QuickActionButton(Icons.Outlined.Medication, "营养", RecordColor.Supplement,
+                onClick = { navController.navigate("record/supplement") })
+            QuickActionButton(Icons.Outlined.Straighten, "成长", RecordColor.Growth,
+                onClick = { navController.navigate("record/growth") })
+            QuickActionButton(Icons.Outlined.Vaccines, "疫苗", StatusColor.Error,
+                onClick = { navController.navigate("vaccine") })
         }
     }
 }
+
+

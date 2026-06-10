@@ -1,105 +1,32 @@
 package com.baby.growth.ui.vaccine
 
-import android.app.Application
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.baby.growth.BabyGrowthApp
 import com.baby.growth.data.entity.VaccineRecord
-import com.baby.growth.ui.theme.*
+import com.baby.growth.ui.components.BabyAccentCard
+import com.baby.growth.ui.components.BabyCard
+import com.baby.growth.ui.components.BabyTopBar
+import com.baby.growth.ui.components.EmptyState
+import com.baby.growth.ui.theme.Radius
+import com.baby.growth.ui.theme.Spacing
+import com.baby.growth.ui.theme.TextSecondary
 import com.baby.growth.utils.DateUtils
-import com.baby.growth.utils.VaccineData
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import java.util.*
-
-class VaccineViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = (application as BabyGrowthApp).database
-
-    private val _vaccineRecords = MutableStateFlow<List<VaccineRecord>>(emptyList())
-    val vaccineRecords: StateFlow<List<VaccineRecord>> = _vaccineRecords.asStateFlow()
-
-    private val _babyBirthday = MutableStateFlow<Long?>(null)
-    val babyBirthday: StateFlow<Long?> = _babyBirthday.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            db.vaccineDao().getAll().collect { records ->
-                _vaccineRecords.value = records
-            }
-        }
-        viewModelScope.launch {
-            db.babyInfoDao().getBabyInfo().collect { babyInfo ->
-                _babyBirthday.value = babyInfo?.birthday
-            }
-        }
-    }
-
-    fun initializeVaccineSchedule(birthday: Long) {
-        viewModelScope.launch {
-            val existingRecords = db.vaccineDao().getAllOnce()
-            if (existingRecords.isNotEmpty()) return@launch
-
-            val allVaccines = VaccineData.getAllVaccines()
-            val recordsToInsert = allVaccines.map { vaccine ->
-                val scheduledDate = DateUtils.addMonthsToBirthday(birthday, vaccine.ageMonths)
-                VaccineRecord(
-                    uniqueId = "${vaccine.name}_${vaccine.dose}_${scheduledDate}",
-                    vaccineName = vaccine.name,
-                    vaccineType = vaccine.type,
-                    dose = vaccine.dose,
-                    ageMonths = vaccine.ageMonths,
-                    scheduledDate = scheduledDate,
-                    status = "pending"
-                )
-            }
-            db.vaccineDao().insertAll(recordsToInsert)
-        }
-    }
-
-    fun markVaccinated(record: VaccineRecord) {
-        viewModelScope.launch {
-            val updated = record.copy(
-                status = "done",
-                actualDate = System.currentTimeMillis()
-            )
-            db.vaccineDao().update(updated)
-        }
-    }
-
-    fun getFilteredVaccines(type: String): List<VaccineRecord> {
-        return _vaccineRecords.value.filter { it.vaccineType == type }
-            .sortedBy { it.scheduledDate }
-    }
-
-    fun getUpcomingVaccine(): VaccineRecord? {
-        return _vaccineRecords.value
-            .filter { it.status == "pending" }
-            .sortedBy { it.scheduledDate }
-            .firstOrNull()
-    }
-
-    fun getProgressStats(type: String): Pair<Int, Int> {
-        val filtered = _vaccineRecords.value.filter { it.vaccineType == type }
-        val done = filtered.count { it.status == "done" }
-        return done to filtered.size
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,22 +52,17 @@ fun VaccineScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("疫苗接种") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
+            BabyTopBar(title = "疫苗接种")
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).background(Background)
+            modifier = Modifier.fillMaxSize().padding(padding)
         ) {
             TabRow(
                 selectedTabIndex = if (selectedTab == "free") 0 else 1,
-                containerColor = Color.White,
-                contentColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary,
+                divider = {}
             ) {
                 Tab(
                     selected = selectedTab == "free",
@@ -156,8 +78,8 @@ fun VaccineScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 item {
                     ProgressCard(doneCount, totalCount)
@@ -169,11 +91,21 @@ fun VaccineScreen(
                     }
                 }
 
-                items(filteredVaccines) { record ->
-                    VaccineItemCard(
-                        record = record,
-                        onClick = { showMarkDialog = record }
-                    )
+                if (filteredVaccines.isEmpty()) {
+                    item {
+                        EmptyState(
+                            icon = Icons.Outlined.Vaccines,
+                            title = "暂无疫苗记录",
+                            subtitle = "添加宝宝生日后会自动生成接种计划"
+                        )
+                    }
+                } else {
+                    items(filteredVaccines) { record ->
+                        VaccineItemCard(
+                            record = record,
+                            onClick = { showMarkDialog = record }
+                        )
+                    }
                 }
             }
         }
@@ -184,6 +116,7 @@ fun VaccineScreen(
             onDismissRequest = { showMarkDialog = null },
             title = { Text("确认接种") },
             text = { Text("确认已接种 ${record.vaccineName} (${record.dose}) 吗？") },
+            shape = RoundedCornerShape(Radius.xl),
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.markVaccinated(record)
@@ -203,43 +136,57 @@ fun VaccineScreen(
 
 @Composable
 fun ProgressCard(doneCount: Int, totalCount: Int) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("接种进度", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { if (totalCount > 0) doneCount.toFloat() / totalCount else 0f },
-                modifier = Modifier.fillMaxWidth().height(8.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primaryContainer
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("已完成 $doneCount/$totalCount", color = TextSecondary, fontSize = 12.sp)
-        }
+    BabyAccentCard {
+        Text("接种进度", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        LinearProgressIndicator(
+            progress = { if (totalCount > 0) doneCount.toFloat() / totalCount else 0f },
+            modifier = Modifier.fillMaxWidth().height(8.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        )
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Text(
+            "已完成 $doneCount/$totalCount (${if (totalCount > 0) (doneCount * 100 / totalCount) else 0}%)",
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            fontSize = 12.sp
+        )
     }
 }
 
 @Composable
 fun UpcomingVaccineCard(record: VaccineRecord) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Mint80)
+    BabyCard(
+        backgroundColor = MaterialTheme.colorScheme.tertiaryContainer
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("⏰", fontSize = 24.sp)
-            Spacer(modifier = Modifier.width(12.dp))
+            Icon(
+                imageVector = Icons.Outlined.Schedule,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(Spacing.md))
             Column(modifier = Modifier.weight(1f)) {
-                Text("即将接种", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF2E7D32))
-                Text("${record.vaccineName} (${record.dose})", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Text("推荐时间: ${DateUtils.formatDate(record.scheduledDate)}", fontSize = 12.sp, color = TextSecondary)
+                Text(
+                    "即将接种",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "${record.vaccineName} (${record.dose})",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    "推荐时间: ${DateUtils.formatDate(record.scheduledDate)}",
+                    fontSize = 12.sp,
+                    color = TextSecondary
+                )
             }
         }
     }
@@ -248,15 +195,12 @@ fun UpcomingVaccineCard(record: VaccineRecord) {
 @Composable
 fun VaccineItemCard(record: VaccineRecord, onClick: () -> Unit) {
     val isDone = record.status == "done"
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isDone) Mint80 else Color.White
-        )
+    BabyCard(
+        modifier = Modifier.clickable(onClick = onClick),
+        cornerRadius = Radius.md
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -273,16 +217,17 @@ fun VaccineItemCard(record: VaccineRecord, onClick: () -> Unit) {
                 if (isDone && record.actualDate != null) {
                     Text(
                         text = "实际接种: ${DateUtils.formatDate(record.actualDate)}",
-                        color = Color(0xFF2E7D32),
+                        color = MaterialTheme.colorScheme.primary,
                         fontSize = 12.sp
                     )
                 }
             }
-            if (isDone) {
-                Text("✅", fontSize = 20.sp)
-            } else {
-                Text("⏰", fontSize = 20.sp)
-            }
+            Icon(
+                imageVector = if (isDone) Icons.Filled.CheckCircle else Icons.Outlined.Schedule,
+                contentDescription = null,
+                tint = if (isDone) MaterialTheme.colorScheme.primary else TextSecondary,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }

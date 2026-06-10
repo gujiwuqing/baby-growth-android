@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -12,10 +14,18 @@ import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Vaccines
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.ListAlt
+import androidx.compose.material.icons.outlined.MonitorWeight
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Vaccines
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -32,12 +42,17 @@ import com.baby.growth.ui.record.*
 import com.baby.growth.ui.theme.BabyGrowthTheme
 import com.baby.growth.utils.ThemeManager
 
-sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
-    data object Home : Screen("home", "首页", Icons.Filled.Home)
-    data object Records : Screen("records", "记录", Icons.Filled.ListAlt)
-    data object Growth : Screen("growth", "身高体重", Icons.Filled.MonitorWeight)
-    data object Vaccine : Screen("vaccine", "疫苗接种", Icons.Filled.Vaccines)
-    data object Settings : Screen("settings", "我的", Icons.Filled.Settings)
+sealed class Screen(
+    val route: String,
+    val title: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
+) {
+    data object Home : Screen("home", "首页", Icons.Filled.Home, Icons.Outlined.Home)
+    data object Records : Screen("records", "记录", Icons.Filled.ListAlt, Icons.Outlined.ListAlt)
+    data object Growth : Screen("growth", "成长", Icons.Filled.MonitorWeight, Icons.Outlined.MonitorWeight)
+    data object Vaccine : Screen("vaccine", "疫苗", Icons.Filled.Vaccines, Icons.Outlined.Vaccines)
+    data object Settings : Screen("settings", "我的", Icons.Filled.Settings, Icons.Outlined.Settings)
 }
 
 val bottomNavItems = listOf(Screen.Home, Screen.Records, Screen.Growth, Screen.Vaccine, Screen.Settings)
@@ -63,7 +78,6 @@ fun MainScreen(initialRoute: String? = null) {
     val currentDestination = navBackStackEntry?.destination
     val showBottomBar = bottomNavItems.any { it.route == currentDestination?.route }
 
-    // 从通知点击进入时，导航到对应记录页面
     LaunchedEffect(initialRoute) {
         if (initialRoute != null) {
             navController.navigate(initialRoute)
@@ -73,32 +87,55 @@ fun MainScreen(initialRoute: String? = null) {
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp,
+                ) {
                     bottomNavItems.forEach { screen ->
+                        val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
                         NavigationBarItem(
-                            icon = { Icon(screen.icon, contentDescription = screen.title) },
-                            label = { Text(screen.title) },
-                            selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                            icon = {
+                                Icon(
+                                    imageVector = if (isSelected) screen.selectedIcon else screen.unselectedIcon,
+                                    contentDescription = screen.title,
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = screen.title,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                )
+                            },
+                            selected = isSelected,
                             onClick = {
                                 navController.navigate(screen.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                     launchSingleTop = true
+                                    restoreState = true
                                 }
                             },
                             colors = NavigationBarItemDefaults.colors(
                                 selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary
-                            )
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            ),
                         )
                     }
                 }
             }
-        }
+        },
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = Screen.Home.route,
-            modifier = Modifier.fillMaxSize().padding(innerPadding)
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            enterTransition = { fadeIn(animationSpec = tween(200)) + slideInVertically(initialOffsetY = { 30 }) },
+            exitTransition = { fadeOut(animationSpec = tween(150)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(200)) },
+            popExitTransition = { fadeOut(animationSpec = tween(150)) + slideOutVertically(targetOffsetY = { 30 }) },
         ) {
             composable(Screen.Home.route) { HomeScreen(navController) }
             composable(Screen.Records.route) { RecordsScreen(navController) }

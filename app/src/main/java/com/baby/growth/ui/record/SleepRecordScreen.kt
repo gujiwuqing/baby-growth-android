@@ -23,6 +23,8 @@ import androidx.navigation.NavController
 import com.baby.growth.BabyGrowthApp
 import com.baby.growth.data.entity.SleepRecord
 import com.baby.growth.service.SleepTimerService
+import com.baby.growth.ui.components.*
+import com.baby.growth.ui.theme.*
 import com.baby.growth.utils.DateUtils
 import com.baby.growth.utils.RecordTypes
 import com.baby.growth.utils.SleepTimer
@@ -101,41 +103,24 @@ fun SleepRecordScreen(
 
     val lastRecord by viewModel.lastRecord
 
+    val lastRecordSubtitle = lastRecord?.let { last ->
+        val relativeTime = DateUtils.formatRelativeTime(last.recordTime)
+        "上次：${DateUtils.formatDuration(last.duration)}，$relativeTime"
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("睡眠记录")
-                        if (lastRecord != null) {
-                            val last = lastRecord!!
-                            val relativeTime = DateUtils.formatRelativeTime(last.recordTime)
-                            Text("上次：${DateUtils.formatDuration(last.duration)}，$relativeTime",
-                                fontSize = 11.sp, fontWeight = FontWeight.Normal)
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
+            BabyTopBar(title = "睡眠记录", subtitle = lastRecordSubtitle, onBack = { navController.popBackStack() })
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             // 模式切换
             Text("记录方式", fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 FilterChip(selected = mode == "timer", onClick = { mode = "timer" },
                     label = { Text("⏱️ 计时") })
                 FilterChip(selected = mode == "manual", onClick = { mode = "manual" },
@@ -147,17 +132,13 @@ fun SleepRecordScreen(
 
                 // 如果计时器正在运行，显示醒目提示
                 if (timerState.isRunning) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                    ) {
+                    BabyAccentCard(modifier = Modifier.fillMaxWidth()) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("😴", fontSize = 20.sp)
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(
                                 "正在计时",
                                 fontWeight = FontWeight.Bold,
@@ -168,18 +149,16 @@ fun SleepRecordScreen(
                 }
 
                 // 计时显示
-                Card(
+                BabyCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (timerState.isRunning)
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        else
-                            MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    backgroundColor = if (timerState.isRunning)
+                        MaterialTheme.colorScheme.tertiaryContainer
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant,
+                    cornerRadius = Radius.xl
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.xl),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
@@ -199,22 +178,21 @@ fun SleepRecordScreen(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     if (!timerState.isRunning) {
-                        Button(
+                        PrimaryButton(
+                            text = "开始计时",
                             onClick = {
                                 SleepTimer.start(context)
                                 SleepTimerService.start(context)
-                            },
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) { Text("开始计时", fontWeight = FontWeight.Bold) }
+                            }
+                        )
                     } else {
                         Button(
                             onClick = {
                                 SleepTimer.stop(context)
                                 SleepTimerService.stop(context)
                             },
-                            modifier = Modifier.fillMaxWidth().height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(Radius.md),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error
                             )
@@ -228,7 +206,7 @@ fun SleepRecordScreen(
                 Text("入睡时间", fontWeight = FontWeight.Bold)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
@@ -236,14 +214,14 @@ fun SleepRecordScreen(
                             startHour = it.toIntOrNull()?.coerceIn(0, 23) ?: startHour
                         },
                         label = { Text("时") }, modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(Radius.md)
                     )
                     OutlinedTextField(
                         value = startMinute.toString(), onValueChange = {
                             startMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: startMinute
                         },
                         label = { Text("分") }, modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(Radius.md)
                     )
                 }
 
@@ -251,7 +229,7 @@ fun SleepRecordScreen(
                 Text("醒来时间", fontWeight = FontWeight.Bold)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
@@ -259,14 +237,14 @@ fun SleepRecordScreen(
                             endHour = it.toIntOrNull()?.coerceIn(0, 23) ?: endHour
                         },
                         label = { Text("时") }, modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(Radius.md)
                     )
                     OutlinedTextField(
                         value = endMinute.toString(), onValueChange = {
                             endMinute = it.toIntOrNull()?.coerceIn(0, 59) ?: endMinute
                         },
                         label = { Text("分") }, modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(Radius.md)
                     )
                     FilterChip(
                         selected = isNextDay, onClick = { isNextDay = !isNextDay },
@@ -275,13 +253,13 @@ fun SleepRecordScreen(
                 }
 
                 // 自动计算时长显示
-                Card(
+                BabyCard(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                    backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                    cornerRadius = Radius.md
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(Spacing.md),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -297,7 +275,7 @@ fun SleepRecordScreen(
 
             // 睡眠质量
             Text("睡眠质量", fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 RecordTypes.SLEEP_QUALITIES.forEach { (label, value) ->
                     FilterChip(selected = quality == value, onClick = { quality = value },
                         label = { Text(label) })
@@ -307,12 +285,13 @@ fun SleepRecordScreen(
             OutlinedTextField(
                 value = note, onValueChange = { note = it },
                 label = { Text("备注") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp), minLines = 2
+                shape = RoundedCornerShape(Radius.md), minLines = 2
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.lg))
 
-            Button(
+            PrimaryButton(
+                text = "保存记录",
                 onClick = {
                     if (mode == "timer") {
                         // 计时模式: 停止计时并保存
@@ -323,7 +302,7 @@ fun SleepRecordScreen(
                         val totalSeconds = SleepTimer.getTotalSeconds()
                         if (totalSeconds == 0) {
                             // 没有开始计时，无法保存
-                            return@Button
+                            return@PrimaryButton
                         }
                         val durationMinutes = totalSeconds / 60
                         val startTime = SleepTimer.getStartTime()
@@ -359,10 +338,8 @@ fun SleepRecordScreen(
                             isNextDay = if (isNextDay) 1 else 0, note = note
                         ) { navController.popBackStack() }
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) { Text("保存记录", fontWeight = FontWeight.Bold) }
+                }
+            )
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.baby.growth.ui.settings
 
-import android.app.Application
 import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -28,54 +27,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.baby.growth.BabyGrowthApp
-import com.baby.growth.data.entity.BabyInfo
-import com.baby.growth.ui.theme.Background
-import com.baby.growth.ui.theme.TextSecondary
-import com.baby.growth.utils.DataExporter
+import com.baby.growth.ui.components.BabyCard
+import com.baby.growth.ui.components.BabyTitledCard
+import com.baby.growth.ui.components.BabyTopBar
+import com.baby.growth.ui.theme.Radius
+import com.baby.growth.ui.theme.Spacing
 import com.baby.growth.utils.DateUtils
 import com.baby.growth.utils.ThemeManager
-import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileInputStream
-
-class SettingsViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = (application as BabyGrowthApp).database
-
-    private val _babyInfo = MutableStateFlow<BabyInfo?>(null)
-    val babyInfo: StateFlow<BabyInfo?> = _babyInfo.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            db.babyInfoDao().getBabyInfo().collect { _babyInfo.value = it }
-        }
-    }
-
-    fun clearAllData() {
-        viewModelScope.launch {
-            db.feedDao().deleteAll()
-            db.diaperDao().deleteAll()
-            db.sleepDao().deleteAll()
-            db.foodDao().deleteAll()
-            db.supplementDao().deleteAll()
-            db.growthDao().deleteAll()
-            db.vaccineDao().deleteAll()
-        }
-    }
-
-    suspend fun exportData(context: Context): String {
-        return DataExporter.exportData(context, db)
-    }
-
-    suspend fun importData(context: Context, json: String): Int {
-        return DataExporter.importData(context, db, json)
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,13 +49,13 @@ fun SettingsScreen(
     var showClearDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     val currentTheme = ThemeManager.getThemeConfig(context)
+    val coroutineScope = rememberCoroutineScope()
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
         if (uri != null) {
-            // 导出功能使用 DataExporter 内置的文件保存逻辑
-            viewModel.viewModelScope.launch {
+            coroutineScope.launch {
                 try {
                     val filePath = viewModel.exportData(context)
                     Toast.makeText(context, "数据已导出到: $filePath", Toast.LENGTH_LONG).show()
@@ -109,7 +70,7 @@ fun SettingsScreen(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            viewModel.viewModelScope.launch {
+            coroutineScope.launch {
                 try {
                     val inputStream = context.contentResolver.openInputStream(uri)
                     val json = inputStream?.bufferedReader()?.use { it.readText() }
@@ -126,82 +87,66 @@ fun SettingsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("我的", fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(android.graphics.Color.parseColor(currentTheme.primaryHex)),
-                    titleContentColor = Color.White
-                )
-            )
+            BabyTopBar(title = "设置")
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).background(Background).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background).padding(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // 宝宝信息卡片
-            Card(
+            BabyCard(
                 modifier = Modifier.fillMaxWidth().clickable {
                     navController.navigate("profile")
-                },
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                }
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(60.dp)
-                                .clip(CircleShape)
-                                .background(Color(android.graphics.Color.parseColor(currentTheme.primaryHex)).copy(alpha = 0.1f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = babyInfo?.avatar ?: "👶",
-                                fontSize = 32.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = babyInfo?.name ?: "未设置",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            val monthAge = babyInfo?.let { DateUtils.getMonthAge(it.birthday) } ?: 0
-                            val genderText = when (babyInfo?.gender) {
-                                1 -> "男宝 👦"
-                                0 -> "女宝 👧"
-                                else -> "未设置"
-                            }
-                            Text(
-                                text = "${monthAge}个月 · $genderText",
-                                color = TextSecondary,
-                                fontSize = 14.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.weight(1f))
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = TextSecondary
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(Spacing.lg)) {
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = babyInfo?.avatar ?: "👶",
+                            fontSize = 32.sp
                         )
                     }
+                    Spacer(modifier = Modifier.width(Spacing.lg))
+                    Column {
+                        Text(
+                            text = babyInfo?.name ?: "未设置",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        val monthAge = babyInfo?.let { DateUtils.getMonthAge(it.birthday) } ?: 0
+                        val genderText = when (babyInfo?.gender) {
+                            1 -> "男宝 👦"
+                            0 -> "女宝 👧"
+                            else -> "未设置"
+                        }
+                        Text(
+                            text = "${monthAge}个月 · $genderText",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 14.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
             // 数据管理卡片
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("数据管理", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
+            BabyTitledCard(title = "数据管理") {
+                Column(modifier = Modifier.padding(Spacing.lg)) {
                     SettingsItem(Icons.Filled.FileDownload, "导出数据") {
-                        viewModel.viewModelScope.launch {
+                        coroutineScope.launch {
                             try {
                                 val filePath = viewModel.exportData(context)
                                 Toast.makeText(context, "数据已导出到: $filePath", Toast.LENGTH_LONG).show()
@@ -220,14 +165,8 @@ fun SettingsScreen(
             }
 
             // 个性化卡片
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("个性化", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
+            BabyTitledCard(title = "个性化") {
+                Column(modifier = Modifier.padding(Spacing.lg)) {
                     SettingsItem(Icons.Filled.Palette, "主题切换") {
                         showThemeDialog = true
                     }
@@ -235,16 +174,10 @@ fun SettingsScreen(
             }
 
             // 关于卡片
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("关于", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("宝宝成长记 v1.0.0", color = TextSecondary, fontSize = 14.sp)
-                    Text("记录宝宝成长的每一个瞬间 💕", color = TextSecondary, fontSize = 14.sp)
+            BabyTitledCard(title = "关于") {
+                Column(modifier = Modifier.padding(Spacing.lg)) {
+                    Text("宝宝成长记 v1.0.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                    Text("记录宝宝成长的每一个瞬间 💕", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                 }
             }
         }
@@ -277,8 +210,8 @@ fun SettingsScreen(
             text = {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                     modifier = Modifier.height(200.dp)
                 ) {
                     items(ThemeManager.THEMES) { theme ->
@@ -291,27 +224,27 @@ fun SettingsScreen(
                                     showThemeDialog = false
                                     Toast.makeText(context, "已切换到${theme.name}", Toast.LENGTH_SHORT).show()
                                 },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(Radius.xl),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isSelected) {
-                                    Color(android.graphics.Color.parseColor(theme.primaryHex)).copy(alpha = 0.2f)
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                                 } else {
-                                    Color.LightGray.copy(alpha = 0.1f)
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                 }
                             ),
                             border = if (isSelected) {
                                 androidx.compose.foundation.BorderStroke(
                                     2.dp,
-                                    Color(android.graphics.Color.parseColor(theme.primaryHex))
+                                    MaterialTheme.colorScheme.primary
                                 )
                             } else null
                         ) {
                             Column(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(Spacing.md),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(theme.emoji, fontSize = 24.sp)
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(Spacing.xs))
                                 Text(
                                     theme.name,
                                     fontSize = 12.sp,
@@ -332,19 +265,39 @@ fun SettingsScreen(
 
 @Composable
 fun SettingsItem(icon: ImageVector, title: String, isDestructive: Boolean = false, onClick: () -> Unit) {
-    TextButton(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            icon, contentDescription = title,
-            tint = if (isDestructive) Color.Red else MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.width(12.dp))
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(if (isDestructive) Color.Red.copy(alpha = 0.1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = title,
+                tint = if (isDestructive) Color.Red else MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(Spacing.md))
         Text(
             text = title,
             color = if (isDestructive) Color.Red else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            fontSize = 15.sp
+        )
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
         )
     }
 }

@@ -1,15 +1,13 @@
 package com.baby.growth.ui.growth
 
-import android.app.Application
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,51 +19,20 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.baby.growth.BabyGrowthApp
 import com.baby.growth.data.entity.GrowthRecord
+import com.baby.growth.ui.components.*
 import com.baby.growth.ui.theme.*
 import com.baby.growth.utils.DateUtils
 import com.baby.growth.utils.GrowthCurveData
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-
-class GrowthViewModel(application: Application) : AndroidViewModel(application) {
-    private val db = (application as BabyGrowthApp).database
-
-    private val _records = MutableStateFlow<List<GrowthRecord>>(emptyList())
-    val records: StateFlow<List<GrowthRecord>> = _records.asStateFlow()
-
-    private val _latestRecord = MutableStateFlow<GrowthRecord?>(null)
-    val latestRecord: StateFlow<GrowthRecord?> = _latestRecord.asStateFlow()
-
-    private val _babyGender = MutableStateFlow<Int>(0)
-    val babyGender: StateFlow<Int> = _babyGender.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            db.growthDao().getAll().collect { _records.value = it }
-        }
-        viewModelScope.launch {
-            _latestRecord.value = db.growthDao().getLatest()
-        }
-        viewModelScope.launch {
-            val babyInfo = db.babyInfoDao().getBabyInfoOnce()
-            _babyGender.value = babyInfo?.gender ?: 0
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,27 +47,22 @@ fun GrowthScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("成长曲线") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
+            BabyTopBar(title = "成长曲线")
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { navController.navigate("record/growth") },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                shape = MaterialTheme.shapes.large
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "添加记录")
             }
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).background(Background),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             item {
                 LatestDataCard(latest, gender)
@@ -115,7 +77,7 @@ fun GrowthScreen(
             }
 
             item {
-                Text("历史记录", fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.padding(top = 8.dp))
+                SectionHeader(title = "历史记录")
             }
 
             items(records.sortedByDescending { it.recordTime }) { record ->
@@ -127,53 +89,47 @@ fun GrowthScreen(
 
 @Composable
 fun LatestDataCard(latest: GrowthRecord?, gender: Int) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("最新指标", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Spacer(modifier = Modifier.height(12.dp))
-            if (latest != null) {
-                val ageMonths = DateUtils.getMonthAge(latest.recordTime)
-                val isMale = gender == 1
-                
-                val heightPercentile = latest.height?.let {
-                    GrowthCurveData.calculatePercentile(it, ageMonths, isMale, "height")
-                }
-                val weightPercentile = latest.weight?.let {
-                    GrowthCurveData.calculatePercentile(it, ageMonths, isMale, "weight")
-                }
-                val headPercentile = latest.headCircumference?.let {
-                    GrowthCurveData.calculatePercentile(it, ageMonths, isMale, "head")
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    GrowthIndicatorWithPercentile(
-                        "身高", 
-                        "${latest.height} cm", 
-                        heightPercentile,
-                        MaterialTheme.colorScheme.primary
-                    )
-                    GrowthIndicatorWithPercentile(
-                        "体重", 
-                        "${latest.weight} kg", 
-                        weightPercentile,
-                        Mint40
-                    )
-                    GrowthIndicatorWithPercentile(
-                        "头围", 
-                        "${latest.headCircumference} cm", 
-                        headPercentile,
-                        Color(0xFFFFB74D)
-                    )
-                }
-            } else {
-                Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                    Text("暂无记录", color = TextHint)
-                }
+    BabyTitledCard(title = "最新指标") {
+        if (latest != null) {
+            val ageMonths = DateUtils.getMonthAge(latest.recordTime)
+            val isMale = gender == 1
+            
+            val heightPercentile = latest.height?.let {
+                GrowthCurveData.calculatePercentile(it, ageMonths, isMale, "height")
             }
+            val weightPercentile = latest.weight?.let {
+                GrowthCurveData.calculatePercentile(it, ageMonths, isMale, "weight")
+            }
+            val headPercentile = latest.headCircumference?.let {
+                GrowthCurveData.calculatePercentile(it, ageMonths, isMale, "head")
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                GrowthIndicatorWithPercentile(
+                    "身高", 
+                    "${latest.height} cm", 
+                    heightPercentile,
+                    MaterialTheme.colorScheme.primary
+                )
+                GrowthIndicatorWithPercentile(
+                    "体重", 
+                    "${latest.weight} kg", 
+                    weightPercentile,
+                    StatusColor.Success
+                )
+                GrowthIndicatorWithPercentile(
+                    "头围", 
+                    "${latest.headCircumference} cm", 
+                    headPercentile,
+                    Color(0xFFFFB74D)
+                )
+            }
+        } else {
+            EmptyState(
+                icon = Icons.Outlined.TrendingUp,
+                title = "暂无记录",
+                subtitle = "点击右下角按钮添加第一条成长记录"
+            )
         }
     }
 }
@@ -199,35 +155,20 @@ fun GrowthIndicatorWithPercentile(label: String, value: String, percentile: Floa
 fun ChartTypeSelector(selectedType: String, onTypeChanged: (String) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        ChartTypeButton("身高曲线", selectedType == "height", { onTypeChanged("height") }, Modifier.weight(1f))
-        ChartTypeButton("体重曲线", selectedType == "weight", { onTypeChanged("weight") }, Modifier.weight(1f))
-    }
-}
-
-@Composable
-fun ChartTypeButton(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = if (selected) MaterialTheme.colorScheme.primary else Color.White,
-        tonalElevation = if (selected) 0.dp else 1.dp
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp)
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = label,
-                fontSize = 14.sp,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                color = if (selected) MaterialTheme.colorScheme.onPrimary else TextSecondary
-            )
-        }
+        FilterTag(
+            text = "身高曲线",
+            selected = selectedType == "height",
+            onClick = { onTypeChanged("height") },
+            modifier = Modifier.weight(1f)
+        )
+        FilterTag(
+            text = "体重曲线",
+            selected = selectedType == "weight",
+            onClick = { onTypeChanged("weight") },
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -243,23 +184,24 @@ fun GrowthCurveChart(records: List<GrowthRecord>, type: String, gender: Int) {
 
     val textMeasurer = rememberTextMeasurer()
     val primaryColor = MaterialTheme.colorScheme.primary
+    val backgroundColor = MaterialTheme.colorScheme.background
     val labelStyle = TextStyle(
         fontSize = 10.sp,
-        color = Color(0xFF999999)
+        color = TextHint
     )
     val legendStyle = TextStyle(
         fontSize = 10.sp,
-        color = Color(0xFF666666)
+        color = TextSecondary
     )
 
     if (validRecords.isEmpty()) {
-        Card(
-            modifier = Modifier.fillMaxWidth().height(250.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
-        ) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("暂无数据", color = TextHint)
+        BabyCard {
+            Box(modifier = Modifier.fillMaxWidth().height(250.dp), contentAlignment = Alignment.Center) {
+                EmptyState(
+                    icon = Icons.Outlined.TrendingUp,
+                    title = "暂无数据",
+                    subtitle = "添加成长记录后即可查看曲线图"
+                )
             }
         }
         return
@@ -269,12 +211,8 @@ fun GrowthCurveChart(records: List<GrowthRecord>, type: String, gender: Int) {
     val maxAge = validRecords.maxOfOrNull { DateUtils.getMonthAge(it.recordTime) } ?: 36
     val displayMaxAge = (maxAge + 6).coerceAtMost(36)
 
-    Card(
-        modifier = Modifier.fillMaxWidth().height(250.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    BabyCard {
+        Canvas(modifier = Modifier.fillMaxWidth().height(250.dp).padding(Spacing.lg)) {
             val canvasWidth = size.width
             val canvasHeight = size.height
             val paddingLeft = 40.dp.toPx()
@@ -421,7 +359,7 @@ fun GrowthCurveChart(records: List<GrowthRecord>, type: String, gender: Int) {
                     center = point
                 )
                 drawCircle(
-                    color = Color.White,
+                    color = backgroundColor,
                     radius = 2.dp.toPx(),
                     center = point
                 )
@@ -455,27 +393,24 @@ fun GrowthCurveChart(records: List<GrowthRecord>, type: String, gender: Int) {
     }
 }
 
-data class LegendItem(val label: String, val lineColor: Color, val indexOffset: Int)
-
 @Composable
 fun HistoryRecordItem(record: GrowthRecord) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
+    BabyCard(contentPadding = PaddingValues(Spacing.md)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date(record.recordTime)),
-                    fontWeight = FontWeight.Medium, fontSize = 14.sp
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
                 )
+                Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
                     text = "身高${record.height}cm 体重${record.weight}kg 头围${record.headCircumference}cm",
-                    color = TextSecondary, fontSize = 12.sp
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
                 )
             }
         }

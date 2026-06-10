@@ -5,15 +5,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,6 +18,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.baby.growth.BabyGrowthApp
 import com.baby.growth.data.entity.GrowthRecord
+import com.baby.growth.ui.components.BabyTopBar
+import com.baby.growth.ui.components.BabyCard
+import com.baby.growth.ui.components.PrimaryButton
+import com.baby.growth.ui.theme.Spacing
+import com.baby.growth.ui.theme.Radius
 import com.baby.growth.utils.DateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -71,38 +73,22 @@ fun GrowthRecordScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("成长指标") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
+            BabyTopBar(title = "成长指标", onBack = { navController.popBackStack() })
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // 上次记录
             lastRecord?.let { last ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                BabyCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(Spacing.md)) {
                         Text("📋 上次记录", fontWeight = FontWeight.Bold, fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onTertiaryContainer)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                             last.height?.let { Text("身高: ${it}cm", fontSize = 12.sp, color = MaterialTheme.colorScheme.onTertiaryContainer) }
                             last.weight?.let { Text("体重: ${it}kg", fontSize = 12.sp, color = MaterialTheme.colorScheme.onTertiaryContainer) }
                             last.headCircumference?.let { Text("头围: ${it}cm", fontSize = 12.sp, color = MaterialTheme.colorScheme.onTertiaryContainer) }
@@ -114,27 +100,28 @@ fun GrowthRecordScreen(
             OutlinedTextField(
                 value = height, onValueChange = { height = it },
                 label = { Text("身高 (cm) — 可选") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(Radius.md)
             )
             OutlinedTextField(
                 value = weight, onValueChange = { weight = it },
                 label = { Text("体重 (kg) — 可选") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(Radius.md)
             )
             OutlinedTextField(
                 value = headCircumference, onValueChange = { headCircumference = it },
                 label = { Text("头围 (cm) — 可选") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(Radius.md)
             )
             OutlinedTextField(
                 value = note, onValueChange = { note = it },
                 label = { Text("备注") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp), minLines = 2
+                shape = RoundedCornerShape(Radius.md), minLines = 2
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.md))
 
-            Button(
+            PrimaryButton(
+                text = "保存记录",
                 onClick = {
                     viewModel.saveRecord(
                         height = height.toFloatOrNull(),
@@ -146,9 +133,8 @@ fun GrowthRecordScreen(
                         navController.popBackStack()
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) { Text("保存记录", fontWeight = FontWeight.Bold) }
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

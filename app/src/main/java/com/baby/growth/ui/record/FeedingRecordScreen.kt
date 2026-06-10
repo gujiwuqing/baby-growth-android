@@ -23,6 +23,8 @@ import androidx.navigation.NavController
 import com.baby.growth.BabyGrowthApp
 import com.baby.growth.data.entity.FeedRecord
 import com.baby.growth.service.FeedingTimerService
+import com.baby.growth.ui.components.*
+import com.baby.growth.ui.theme.*
 import com.baby.growth.utils.BreastfeedingTimer
 import com.baby.growth.utils.DateUtils
 import kotlinx.coroutines.delay
@@ -91,47 +93,31 @@ fun FeedingRecordScreen(
 
     val lastRecord by viewModel.lastRecord
 
+    val lastRecordSubtitle = lastRecord?.let { last ->
+        val relativeTime = DateUtils.formatRelativeTime(last.recordTime)
+        if (last.type == "breast") {
+            val parts = mutableListOf<String>()
+            if (last.leftDuration > 0) parts.add("左侧${last.leftDuration}min")
+            if (last.rightDuration > 0) parts.add("右侧${last.rightDuration}min")
+            val durationText = if (parts.isNotEmpty()) parts.joinToString("/") else "0min"
+            "上次：$durationText，$relativeTime"
+        } else {
+            "上次：${last.amount}ml，$relativeTime"
+        }
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("喂奶记录")
-                        if (lastRecord != null) {
-                            val last = lastRecord!!
-                            val relativeTime = DateUtils.formatRelativeTime(last.recordTime)
-                            val lastDetail = if (last.type == "breast") {
-                                val parts = mutableListOf<String>()
-                                if (last.leftDuration > 0) parts.add("左${last.leftDuration}min")
-                                if (last.rightDuration > 0) parts.add("右${last.rightDuration}min")
-                                "上次：${parts.joinToString("/")}，$relativeTime"
-                            } else {
-                                "上次：${last.amount}ml，$relativeTime"
-                            }
-                            Text(lastDetail, fontSize = 11.sp, fontWeight = FontWeight.Normal)
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
+            BabyTopBar(title = "喂奶记录", subtitle = lastRecordSubtitle, onBack = { navController.popBackStack() })
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(padding).padding(Spacing.lg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             Text("喂养方式", fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 listOf("breast" to "🤱 母乳", "formula" to "🍼 配方奶", "bottle" to "🍼 瓶喂母乳").forEach { (value, label) ->
                     FilterChip(selected = feedType == value, onClick = {
                         feedType = value
@@ -143,7 +129,7 @@ fun FeedingRecordScreen(
                 OutlinedTextField(
                     value = amount, onValueChange = { amount = it.filter { c -> c.isDigit() } },
                     label = { Text("奶量 (ml)") }, modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(Radius.md)
                 )
             }
 
@@ -152,17 +138,13 @@ fun FeedingRecordScreen(
 
                 // 如果有计时器正在运行，显示醒目提示
                 if (timerState.isRunning) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                    ) {
+                    BabyAccentCard(modifier = Modifier.fillMaxWidth()) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("⏱️", fontSize = 20.sp)
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(Spacing.sm))
                             Text(
                                 "正在计时 ${if (timerState.side == "left") "左侧" else "右侧"}",
                                 fontWeight = FontWeight.Bold,
@@ -174,7 +156,7 @@ fun FeedingRecordScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                 ) {
                     // 左侧计时
                     Column(
@@ -228,19 +210,19 @@ fun FeedingRecordScreen(
 
                 // 手动输入/微调
                 Text("或手动微调时长（分钟）", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     OutlinedTextField(
                         value = (leftDisplaySeconds / 60).toString(),
                         onValueChange = {},
                         label = { Text("左侧(分)") }, modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(Radius.md),
                         readOnly = true
                     )
                     OutlinedTextField(
                         value = (rightDisplaySeconds / 60).toString(),
                         onValueChange = {},
                         label = { Text("右侧(分)") }, modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(Radius.md),
                         readOnly = true
                     )
                 }
@@ -249,12 +231,13 @@ fun FeedingRecordScreen(
             OutlinedTextField(
                 value = note, onValueChange = { note = it },
                 label = { Text("备注") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp), minLines = 2
+                shape = RoundedCornerShape(Radius.md), minLines = 2
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(Spacing.lg))
 
-            Button(
+            PrimaryButton(
+                text = "保存记录",
                 onClick = {
                     val now = System.currentTimeMillis()
                     // 保存时如果计时器还在运行，先停止计时
@@ -279,10 +262,8 @@ fun FeedingRecordScreen(
                         Toast.makeText(context, "喂奶记录已保存", Toast.LENGTH_SHORT).show()
                         navController.popBackStack()
                     }
-                },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) { Text("保存记录", fontWeight = FontWeight.Bold) }
+                }
+            )
         }
     }
 }
