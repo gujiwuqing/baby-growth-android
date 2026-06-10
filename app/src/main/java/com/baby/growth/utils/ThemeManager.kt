@@ -3,6 +3,7 @@ package com.baby.growth.utils
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +32,7 @@ object ThemeManager {
 
     private const val PREFS_NAME = "baby_growth_prefs"
     private const val KEY_THEME = "selected_theme"
+    private const val KEY_DARK_MODE = "dark_mode"
 
     private fun getPrefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -40,6 +42,13 @@ object ThemeManager {
 
     fun setTheme(context: Context, themeKey: String) {
         getPrefs(context).edit().putString(KEY_THEME, themeKey).apply()
+    }
+
+    fun isDarkMode(context: Context): Boolean =
+        getPrefs(context).getBoolean(KEY_DARK_MODE, false)
+
+    fun setDarkMode(context: Context, darkMode: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_DARK_MODE, darkMode).apply()
     }
 
     fun getThemeConfig(context: Context): ThemeConfig {
@@ -55,15 +64,35 @@ object ThemeManager {
      */
     @Composable
     fun selectedThemeKey(context: Context): State<String> {
-        val initialKey = getSelectedThemeKey(context)
-        val state = remember { mutableStateOf(initialKey) }
         val prefs = getPrefs(context)
-        remember {
-            prefs.registerOnSharedPreferenceChangeListener { _, key ->
+        val state = remember { mutableStateOf(getSelectedThemeKey(context)) }
+        DisposableEffect(prefs) {
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
                 if (key == KEY_THEME) {
                     state.value = prefs.getString(KEY_THEME, "coral") ?: "coral"
                 }
             }
+            prefs.registerOnSharedPreferenceChangeListener(listener)
+            onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+        }
+        return state
+    }
+
+    /**
+     * Compose 可观察的深色模式状态，当 SharedPreferences 变化时自动更新
+     */
+    @Composable
+    fun darkModeState(context: Context): State<Boolean> {
+        val prefs = getPrefs(context)
+        val state = remember { mutableStateOf(isDarkMode(context)) }
+        DisposableEffect(prefs) {
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                if (key == KEY_DARK_MODE) {
+                    state.value = prefs.getBoolean(KEY_DARK_MODE, false)
+                }
+            }
+            prefs.registerOnSharedPreferenceChangeListener(listener)
+            onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
         }
         return state
     }

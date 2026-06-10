@@ -63,7 +63,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val themeKey by ThemeManager.selectedThemeKey(this)
-            BabyGrowthTheme(themeKey = themeKey) {
+            val darkMode by ThemeManager.darkModeState(this)
+            BabyGrowthTheme(themeKey = themeKey, darkMode = darkMode) {
                 val initialRoute = intent?.getStringExtra("route")
                 MainScreen(initialRoute = initialRoute)
             }

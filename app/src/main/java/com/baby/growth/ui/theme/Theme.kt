@@ -25,6 +25,13 @@ val TextSecondary = Color(0xFF6B7280)
 val TextHint = Color(0xFF9CA3AF)
 val DividerColor = Color(0xFFF0F0F0)
 
+// ─── 深色基础颜色Token ───
+val DarkOnBackground = Color(0xFFE8E8F0)
+val DarkOnSurface = Color(0xFFE8E8F0)
+val DarkTextSecondary = Color(0xFF9CA3B8)
+val DarkTextHint = Color(0xFF6B728A)
+val DarkDividerColor = Color(0xFF2A2A36)
+
 // ─── 记录类型语义色 ───
 object RecordColor {
     val Breast = Color(0xFFE8857A)
@@ -220,7 +227,77 @@ private val ThemeColors = mapOf(
     )
 )
 
-private fun buildColorScheme(themeKey: String): ColorScheme {
+// ─── 深色主题色板（低亮度暖色调，减少蓝光刺激，呵护宝宝睡眠）───
+private val DarkThemeColors = mapOf(
+    "coral" to ThemeColorSet(
+        primary = Color(0xFFD47068),
+        primaryContainer = Color(0xFF3D1A16),
+        onPrimaryContainer = Color(0xFFF0C0B8),
+        secondary = Color(0xFF7AB89E),
+        secondaryContainer = Color(0xFF1A3D2E),
+        background = Color(0xFF16161E),
+        surfaceTint = Color(0xFF1E1E26),
+        tertiary = Color(0xFFD4A888),
+        tertiaryContainer = Color(0xFF3D2A1E),
+    ),
+    "lavender" to ThemeColorSet(
+        primary = Color(0xFF9E8FBE),
+        primaryContainer = Color(0xFF2E2448),
+        onPrimaryContainer = Color(0xFFE0D8F0),
+        secondary = Color(0xFF7AB8D8),
+        secondaryContainer = Color(0xFF1A3450),
+        background = Color(0xFF16161E),
+        surfaceTint = Color(0xFF1E1E26),
+        tertiary = Color(0xFFB8AED0),
+        tertiaryContainer = Color(0xFF302840),
+    ),
+    "mint" to ThemeColorSet(
+        primary = Color(0xFF78B89E),
+        primaryContainer = Color(0xFF1A4D3A),
+        onPrimaryContainer = Color(0xFFC8E8D8),
+        secondary = Color(0xFF7AB8D8),
+        secondaryContainer = Color(0xFF1A3450),
+        background = Color(0xFF16161E),
+        surfaceTint = Color(0xFF1E1E26),
+        tertiary = Color(0xFFA0D0B8),
+        tertiaryContainer = Color(0xFF264030),
+    ),
+    "sky" to ThemeColorSet(
+        primary = Color(0xFF88B0C8),
+        primaryContainer = Color(0xFF1E4060),
+        onPrimaryContainer = Color(0xFFC8E0F0),
+        secondary = Color(0xFF7AB89E),
+        secondaryContainer = Color(0xFF1A3D2E),
+        background = Color(0xFF16161E),
+        surfaceTint = Color(0xFF1E1E26),
+        tertiary = Color(0xFFA0C8E0),
+        tertiaryContainer = Color(0xFF283848),
+    ),
+    "sunshine" to ThemeColorSet(
+        primary = Color(0xFFD4A888),
+        primaryContainer = Color(0xFF3D2A1E),
+        onPrimaryContainer = Color(0xFFF0D8C0),
+        secondary = Color(0xFF7AB89E),
+        secondaryContainer = Color(0xFF1A3D2E),
+        background = Color(0xFF16161E),
+        surfaceTint = Color(0xFF1E1E26),
+        tertiary = Color(0xFFE0C0A0),
+        tertiaryContainer = Color(0xFF3D2E20),
+    ),
+    "sakura" to ThemeColorSet(
+        primary = Color(0xFFD898A8),
+        primaryContainer = Color(0xFF3D2030),
+        onPrimaryContainer = Color(0xFFF0C0D0),
+        secondary = Color(0xFF9E8FBE),
+        secondaryContainer = Color(0xFF2E2448),
+        background = Color(0xFF16161E),
+        surfaceTint = Color(0xFF1E1E26),
+        tertiary = Color(0xFFE0A0B0),
+        tertiaryContainer = Color(0xFF3D2838),
+    )
+)
+
+private fun buildLightColorScheme(themeKey: String): ColorScheme {
     val colors = ThemeColors[themeKey] ?: ThemeColors["coral"]!!
     return lightColorScheme(
         primary = colors.primary,
@@ -245,7 +322,32 @@ private fun buildColorScheme(themeKey: String): ColorScheme {
     )
 }
 
-private fun buildExtendedColors(themeKey: String): BabyGrowthColors {
+private fun buildDarkColorScheme(themeKey: String): ColorScheme {
+    val colors = DarkThemeColors[themeKey] ?: DarkThemeColors["coral"]!!
+    return darkColorScheme(
+        primary = colors.primary,
+        onPrimary = OnPrimary,
+        primaryContainer = colors.primaryContainer,
+        onPrimaryContainer = colors.onPrimaryContainer,
+        secondary = colors.secondary,
+        onSecondary = OnPrimary,
+        secondaryContainer = colors.secondaryContainer,
+        onSecondaryContainer = Color(0xFFB8E8D0),
+        tertiary = colors.tertiary,
+        tertiaryContainer = colors.tertiaryContainer,
+        background = colors.background,
+        onBackground = DarkOnBackground,
+        surface = Color(0xFF1E1E26),
+        onSurface = DarkOnSurface,
+        surfaceVariant = Color(0xFF262636),
+        onSurfaceVariant = DarkTextSecondary,
+        surfaceTint = colors.surfaceTint,
+        outline = Color(0xFF3A3A4A),
+        outlineVariant = Color(0xFF2A2A36),
+    )
+}
+
+private fun buildLightExtendedColors(themeKey: String): BabyGrowthColors {
     val colors = ThemeColors[themeKey] ?: ThemeColors["coral"]!!
     return BabyGrowthColors(
         cardBackground = Color.White,
@@ -261,6 +363,22 @@ private fun buildExtendedColors(themeKey: String): BabyGrowthColors {
     )
 }
 
+private fun buildDarkExtendedColors(themeKey: String): BabyGrowthColors {
+    val colors = DarkThemeColors[themeKey] ?: DarkThemeColors["coral"]!!
+    return BabyGrowthColors(
+        cardBackground = Color(0xFF1E1E28),
+        cardBorder = Color(0xFF2A2A36),
+        shimmer = Color(0xFF262630),
+        tagBackground = colors.primaryContainer,
+        tagText = colors.onPrimaryContainer,
+        iconTint = colors.primary.copy(alpha = 0.6f),
+        shadow = Color(0x10000000),
+        successLight = Color(0xFF1A3D2A),
+        warningLight = Color(0xFF3D2E1E),
+        errorLight = Color(0xFF3D1A1E),
+    )
+}
+
 // ─── 全局访问入口 ───
 object BabyGrowthTheme {
     val colors: BabyGrowthColors
@@ -273,10 +391,11 @@ object BabyGrowthTheme {
 @Composable
 fun BabyGrowthTheme(
     themeKey: String = "coral",
+    darkMode: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = buildColorScheme(themeKey)
-    val extendedColors = buildExtendedColors(themeKey)
+    val colorScheme = if (darkMode) buildDarkColorScheme(themeKey) else buildLightColorScheme(themeKey)
+    val extendedColors = if (darkMode) buildDarkExtendedColors(themeKey) else buildLightExtendedColors(themeKey)
     val babyTypography = LocalBabyGrowthTypography.current
 
     val view = LocalView.current
@@ -284,7 +403,7 @@ fun BabyGrowthTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkMode
         }
     }
 

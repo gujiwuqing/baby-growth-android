@@ -167,6 +167,51 @@ fun SettingsScreen(
             // 个性化卡片
             BabyTitledCard(title = "个性化") {
                 Column(modifier = Modifier.padding(Spacing.lg)) {
+                    val darkMode by ThemeManager.darkModeState(context)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                if (darkMode) Icons.Filled.DarkMode else Icons.Filled.LightMode,
+                                contentDescription = "深色模式",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(Spacing.md))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "夜间模式",
+                                fontSize = 15.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "降低亮度，呵护宝宝睡眠 🌙",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = darkMode,
+                            onCheckedChange = { enabled ->
+                                ThemeManager.setDarkMode(context, enabled)
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            )
+                        )
+                    }
                     SettingsItem(Icons.Filled.Palette, "主题切换") {
                         showThemeDialog = true
                     }
