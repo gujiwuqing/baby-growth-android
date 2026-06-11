@@ -178,6 +178,9 @@ cd baby-growth-android
 - **睡眠建议**: 美国儿科学会 (AAP) 推荐
 - **疫苗计划**: 中国国家免疫规划程序
 
+## 发布
+git tag v1.x.x && git push origin v1.x.x
+
 ## 🤝 贡献
 
 欢迎贡献代码！请遵循以下步骤：

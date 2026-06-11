@@ -96,7 +96,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             if (lastDiaper != null) {
                 val minutesSinceLastDiaper = (now - lastDiaper.recordTime) / 60000
                 if (minutesSinceLastDiaper > 180) {
-                    tips.add(SmartTip("👶", "超过3小时没换尿布了，检查一下吧"))
+                    tips.add(SmartTip("👶", "超过3小时没换纸尿裤了，检查一下吧"))
                 }
             }
 
@@ -182,7 +182,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 if (diaper.note.isNotEmpty()) detailParts.add(diaper.note)
                 records.add(
                     RecentRecord(
-                        id = diaper.id, type = "diaper", title = "换尿布",
+                        id = diaper.id, type = "diaper", title = "换纸尿裤",
                         detail = "${detailParts.joinToString(" · ")}\n${DateUtils.formatRelativeTime(diaper.recordTime)}",
                         time = diaper.recordTime, icon = "👶",
                         tableName = "diapers"

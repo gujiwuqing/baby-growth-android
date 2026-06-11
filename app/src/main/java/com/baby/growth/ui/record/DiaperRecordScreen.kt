@@ -146,7 +146,7 @@ fun DiaperRecordScreen(
     Scaffold(
         topBar = {
             BabyTopBar(
-                title = if (isEditMode) "编辑尿布记录" else "换尿布",
+                title = if (isEditMode) "编辑换纸尿裤记录" else "换纸尿裤",
                 subtitle = if (isEditMode) null else lastRecordSubtitle,
                 onBack = { navController.popBackStack() }
             )

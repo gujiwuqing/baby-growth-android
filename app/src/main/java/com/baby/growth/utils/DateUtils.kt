@@ -80,11 +80,16 @@ object DateUtils {
 
     /** 计算月龄 */
     fun getMonthAge(birthday: Long): Int {
+        return getMonthAge(birthday, System.currentTimeMillis())
+    }
+
+    /** 计算指定时间点的月龄 */
+    fun getMonthAge(birthday: Long, atTime: Long): Int {
         val birthCal = Calendar.getInstance().apply { timeInMillis = birthday }
-        val nowCal = Calendar.getInstance()
-        var months = (nowCal.get(Calendar.YEAR) - birthCal.get(Calendar.YEAR)) * 12 +
-                (nowCal.get(Calendar.MONTH) - birthCal.get(Calendar.MONTH))
-        if (nowCal.get(Calendar.DAY_OF_MONTH) < birthCal.get(Calendar.DAY_OF_MONTH)) {
+        val targetCal = Calendar.getInstance().apply { timeInMillis = atTime }
+        var months = (targetCal.get(Calendar.YEAR) - birthCal.get(Calendar.YEAR)) * 12 +
+                (targetCal.get(Calendar.MONTH) - birthCal.get(Calendar.MONTH))
+        if (targetCal.get(Calendar.DAY_OF_MONTH) < birthCal.get(Calendar.DAY_OF_MONTH)) {
             months--
         }
         return months.coerceAtLeast(0)

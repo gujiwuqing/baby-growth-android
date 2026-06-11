@@ -1,16 +1,23 @@
 package com.baby.growth.ui.record
 
 import android.app.Application
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.*
 import android.widget.Toast
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,13 +28,15 @@ import com.baby.growth.data.entity.GrowthRecord
 import com.baby.growth.ui.components.BabyTopBar
 import com.baby.growth.ui.components.BabyCard
 import com.baby.growth.ui.components.PrimaryButton
-import com.baby.growth.ui.theme.Spacing
-import com.baby.growth.ui.theme.Radius
+import com.baby.growth.ui.theme.*
 import com.baby.growth.utils.DateUtils
+import com.baby.growth.utils.GrowthCurveData
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 class GrowthRecordViewModel(application: Application) : AndroidViewModel(application) {
     private val db = (application as BabyGrowthApp).database
@@ -50,16 +59,26 @@ class GrowthRecordViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    private val _babyInfo = MutableStateFlow<com.baby.growth.data.entity.BabyInfo?>(null)
+    val babyInfo: StateFlow<com.baby.growth.data.entity.BabyInfo?> = _babyInfo.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _babyInfo.value = db.babyInfoDao().getBabyInfoOnce()
+        }
+    }
+
     fun saveRecord(
         height: Float?, weight: Float?, headCircumference: Float?,
-        note: String, onSuccess: () -> Unit
+        note: String, recordTime: Long, onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
             db.growthDao().insert(
                 GrowthRecord(
                     uniqueId = DateUtils.generateUniqueId("growth"),
                     height = height, weight = weight,
-                    headCircumference = headCircumference, note = note
+                    headCircumference = headCircumference, note = note,
+                    recordTime = recordTime
                 )
             )
             onSuccess()
@@ -68,11 +87,15 @@ class GrowthRecordViewModel(application: Application) : AndroidViewModel(applica
 
     fun updateRecord(
         record: GrowthRecord, height: Float?, weight: Float?,
-        headCircumference: Float?, note: String, onSuccess: () -> Unit
+        headCircumference: Float?, note: String, recordTime: Long, onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
             db.growthDao().update(
-                record.copy(height = height, weight = weight, headCircumference = headCircumference, note = note)
+                record.copy(
+                    height = height, weight = weight,
+                    headCircumference = headCircumference, note = note,
+                    recordTime = recordTime
+                )
             )
             onSuccess()
         }
@@ -90,6 +113,7 @@ fun GrowthRecordScreen(
     val isEditMode = editId != null
     val editRecord by viewModel.editRecord.collectAsState()
     val lastRecord by viewModel.lastRecord.collectAsState()
+    val babyInfo by viewModel.babyInfo.collectAsState()
 
     LaunchedEffect(editId) {
         if (editId != null) viewModel.loadForEdit(editId)
@@ -99,6 +123,8 @@ fun GrowthRecordScreen(
     var weight by remember { mutableStateOf("") }
     var headCircumference by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
+    var recordTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     // 编辑模式回填数据
     LaunchedEffect(editRecord) {
@@ -107,6 +133,46 @@ fun GrowthRecordScreen(
             weight = record.weight?.toString() ?: ""
             headCircumference = record.headCircumference?.toString() ?: ""
             note = record.note
+            recordTime = record.recordTime
+        }
+    }
+
+    // 计算当前月龄和参考值
+    val monthAge = remember(babyInfo, recordTime) {
+        babyInfo?.let { DateUtils.getMonthAge(it.birthday, recordTime) } ?: -1
+    }
+    val isMale = remember(babyInfo) { babyInfo?.gender == 1 }
+    val heightRef = remember(monthAge, isMale) {
+        if (monthAge < 0) null
+        else getReferenceRange(monthAge, isMale, "height")
+    }
+    val weightRef = remember(monthAge, isMale) {
+        if (monthAge < 0) null
+        else getReferenceRange(monthAge, isMale, "weight")
+    }
+    val headRef = remember(monthAge, isMale) {
+        if (monthAge < 0) null
+        else getReferenceRange(monthAge, isMale, "head")
+    }
+
+    // 日期选择器
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = recordTime
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { recordTime = it }
+                    showDatePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
         }
     }
 
@@ -120,6 +186,45 @@ fun GrowthRecordScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
+            // 测量日期选择
+            BabyCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(Radius.md))
+                        .clickable { showDatePicker = true }
+                        .padding(Spacing.md),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column {
+                        Text(
+                            "测量日期",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            SimpleDateFormat("yyyy年M月d日", Locale.CHINESE).format(Date(recordTime)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        if (monthAge >= 0) {
+                            Text(
+                                "宝宝 ${monthAge}个月",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary,
+                            )
+                        }
+                    }
+                    Icon(
+                        Icons.Outlined.CalendarMonth,
+                        contentDescription = "选择日期",
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+
             // 上次记录
             lastRecord?.let { last ->
                 BabyCard(modifier = Modifier.fillMaxWidth()) {
@@ -136,20 +241,69 @@ fun GrowthRecordScreen(
                 }
             }
 
+            // 参考值提示
+            if (heightRef != null || weightRef != null) {
+                BabyCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = MaterialTheme.colorScheme.tertiaryContainer,
+                ) {
+                    Column(modifier = Modifier.padding(Spacing.md)) {
+                        val genderLabel = if (isMale) "男宝" else "女宝"
+                        Text(
+                            "📊 ${monthAge}个月${genderLabel}参考范围 (WHO)",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        heightRef?.let {
+                            Text(
+                                "身高: ${it.first}~${it.second} cm (P3~P97)",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+                            )
+                        }
+                        weightRef?.let {
+                            Text(
+                                "体重: ${it.first}~${it.second} kg (P3~P97)",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+                            )
+                        }
+                        headRef?.let {
+                            Text(
+                                "头围: ${it.first}~${it.second} cm (P3~P97)",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+                            )
+                        }
+                    }
+                }
+            }
+
             OutlinedTextField(
                 value = height, onValueChange = { height = it },
                 label = { Text("身高 (cm) — 可选") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.md)
+                shape = RoundedCornerShape(Radius.md),
+                supportingText = heightRef?.let {
+                    { Text("参考: ${it.first}~${it.second} cm", color = TextHint, fontSize = 11.sp) }
+                },
             )
             OutlinedTextField(
                 value = weight, onValueChange = { weight = it },
                 label = { Text("体重 (kg) — 可选") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.md)
+                shape = RoundedCornerShape(Radius.md),
+                supportingText = weightRef?.let {
+                    { Text("参考: ${it.first}~${it.second} kg", color = TextHint, fontSize = 11.sp) }
+                },
             )
             OutlinedTextField(
                 value = headCircumference, onValueChange = { headCircumference = it },
                 label = { Text("头围 (cm) — 可选") }, modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(Radius.md)
+                shape = RoundedCornerShape(Radius.md),
+                supportingText = headRef?.let {
+                    { Text("参考: ${it.first}~${it.second} cm", color = TextHint, fontSize = 11.sp) }
+                },
             )
             OutlinedTextField(
                 value = note, onValueChange = { note = it },
@@ -168,7 +322,8 @@ fun GrowthRecordScreen(
                             height = height.toFloatOrNull(),
                             weight = weight.toFloatOrNull(),
                             headCircumference = headCircumference.toFloatOrNull(),
-                            note = note
+                            note = note,
+                            recordTime = recordTime,
                         ) {
                             Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
                             navController.popBackStack()
@@ -178,7 +333,8 @@ fun GrowthRecordScreen(
                             height = height.toFloatOrNull(),
                             weight = weight.toFloatOrNull(),
                             headCircumference = headCircumference.toFloatOrNull(),
-                            note = note
+                            note = note,
+                            recordTime = recordTime,
                         ) {
                             Toast.makeText(context, "成长记录已保存", Toast.LENGTH_SHORT).show()
                             navController.popBackStack()
@@ -189,4 +345,36 @@ fun GrowthRecordScreen(
             )
         }
     }
+}
+
+/**
+ * 根据月龄获取 WHO 参考值范围 (P3~P97)
+ */
+private fun getReferenceRange(
+    monthAge: Int,
+    isMale: Boolean,
+    type: String
+): Pair<Float, Float>? {
+    val data = when (type) {
+        "height" -> if (isMale) GrowthCurveData.BOY_HEIGHT else GrowthCurveData.GIRL_HEIGHT
+        "weight" -> if (isMale) GrowthCurveData.BOY_WEIGHT else GrowthCurveData.GIRL_WEIGHT
+        "head" -> if (isMale) GrowthCurveData.BOY_HEAD else GrowthCurveData.GIRL_HEAD
+        else -> return null
+    }
+    val clampedAge = monthAge.coerceIn(0, 36)
+    val lowerKey = data.keys.filter { it <= clampedAge }.maxOrNull() ?: return null
+    val upperKey = data.keys.filter { it >= clampedAge }.minOrNull() ?: return null
+    val lower = data[lowerKey] ?: return null
+    val upper = data[upperKey] ?: return null
+
+    if (lowerKey == upperKey) {
+        return Pair(lower.p3, lower.p97)
+    }
+    val ratio = (clampedAge - lowerKey).toFloat() / (upperKey - lowerKey)
+    val p3 = lower.p3 + (upper.p3 - lower.p3) * ratio
+    val p97 = lower.p97 + (upper.p97 - lower.p97) * ratio
+    return Pair(
+        (p3 * 10).toInt() / 10f,
+        (p97 * 10).toInt() / 10f
+    )
 }

@@ -17,7 +17,7 @@ object RecordTypes {
         RecordTypeMeta("breast", "母乳", "🤱", "#E8857A"),
         RecordTypeMeta("formula", "配方奶", "🍼", "#5B8DEF"),
         RecordTypeMeta("bottle", "瓶喂母乳", "🍼", "#9DC4E0"),
-        RecordTypeMeta("diaper", "换尿布", "👶", "#8CC9B0"),
+        RecordTypeMeta("diaper", "换纸尿裤", "👶", "#8CC9B0"),
         RecordTypeMeta("sleep", "睡眠", "😴", "#B8A9D4"),
         RecordTypeMeta("food", "辅食", "🥣", "#F5C5A3"),
         RecordTypeMeta("supplement", "营养补剂", "💊", "#A8D8EA"),

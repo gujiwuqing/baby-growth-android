@@ -76,6 +76,8 @@ data class BabyGrowthColors(
     val successLight: Color,
     val warningLight: Color,
     val errorLight: Color,
+    val ctaButton: Color,
+    val ctaButtonPressed: Color,
 )
 
 val LocalBabyGrowthColors = staticCompositionLocalOf {
@@ -90,6 +92,8 @@ val LocalBabyGrowthColors = staticCompositionLocalOf {
         successLight = Color(0xFFECFDF5),
         warningLight = Color(0xFFFFFBEB),
         errorLight = Color(0xFFFEF2F2),
+        ctaButton = Color(0xFFD4574A),
+        ctaButtonPressed = Color(0xFFC04A3E),
     )
 }
 
@@ -349,6 +353,16 @@ private fun buildDarkColorScheme(themeKey: String): ColorScheme {
 
 private fun buildLightExtendedColors(themeKey: String): BabyGrowthColors {
     val colors = ThemeColors[themeKey] ?: ThemeColors["coral"]!!
+    // CTA 按钮使用更深的主题色，提高对比度和可点击感
+    val ctaColors = mapOf(
+        "coral" to Pair(Color(0xFFD4574A), Color(0xFFC04A3E)),
+        "lavender" to Pair(Color(0xFF8B7AB8), Color(0xFF7A6AA8)),
+        "mint" to Pair(Color(0xFF5FAD8E), Color(0xFF4F9D7E)),
+        "sky" to Pair(Color(0xFF6FA8C8), Color(0xFF5F98B8)),
+        "sunshine" to Pair(Color(0xFFD4956A), Color(0xFFC4855A)),
+        "sakura" to Pair(Color(0xFFE8899A), Color(0xFFD87A8A)),
+    )
+    val (ctaButton, ctaPressed) = ctaColors[themeKey] ?: ctaColors["coral"]!!
     return BabyGrowthColors(
         cardBackground = Color.White,
         cardBorder = Color(0xFFF3F4F6),
@@ -360,11 +374,22 @@ private fun buildLightExtendedColors(themeKey: String): BabyGrowthColors {
         successLight = Color(0xFFECFDF5),
         warningLight = Color(0xFFFFFBEB),
         errorLight = Color(0xFFFEF2F2),
+        ctaButton = ctaButton,
+        ctaButtonPressed = ctaPressed,
     )
 }
 
 private fun buildDarkExtendedColors(themeKey: String): BabyGrowthColors {
     val colors = DarkThemeColors[themeKey] ?: DarkThemeColors["coral"]!!
+    val ctaColors = mapOf(
+        "coral" to Pair(Color(0xFFD4574A), Color(0xFFC04A3E)),
+        "lavender" to Pair(Color(0xFF8B7AB8), Color(0xFF7A6AA8)),
+        "mint" to Pair(Color(0xFF5FAD8E), Color(0xFF4F9D7E)),
+        "sky" to Pair(Color(0xFF6FA8C8), Color(0xFF5F98B8)),
+        "sunshine" to Pair(Color(0xFFD4956A), Color(0xFFC4855A)),
+        "sakura" to Pair(Color(0xFFE8899A), Color(0xFFD87A8A)),
+    )
+    val (ctaButton, ctaPressed) = ctaColors[themeKey] ?: ctaColors["coral"]!!
     return BabyGrowthColors(
         cardBackground = Color(0xFF1E1E28),
         cardBorder = Color(0xFF2A2A36),
@@ -376,6 +401,8 @@ private fun buildDarkExtendedColors(themeKey: String): BabyGrowthColors {
         successLight = Color(0xFF1A3D2A),
         warningLight = Color(0xFF3D2E1E),
         errorLight = Color(0xFF3D1A1E),
+        ctaButton = ctaButton,
+        ctaButtonPressed = ctaPressed,
     )
 }
 

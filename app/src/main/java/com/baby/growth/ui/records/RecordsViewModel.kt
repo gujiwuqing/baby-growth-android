@@ -149,7 +149,7 @@ class RecordsViewModel(application: Application) : AndroidViewModel(application)
                 val detailParts = mutableListOf(typeLabel)
                 if (record.hasRash == 1) detailParts.add("红屁屁")
                 if (record.note.isNotEmpty()) detailParts.add(record.note)
-                items.add(TimelineRecord(record.id, "diaper", "换尿布", detailParts.joinToString(" · "), record.recordTime, "diapers"))
+                items.add(TimelineRecord(record.id, "diaper", "换纸尿裤", detailParts.joinToString(" · "), record.recordTime, "diapers"))
             }
             sleeps.forEach { record ->
                 val timeRange = if (record.startTime > 0 && record.endTime > 0) {

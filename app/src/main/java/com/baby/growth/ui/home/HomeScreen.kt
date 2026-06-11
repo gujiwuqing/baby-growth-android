@@ -215,7 +215,7 @@ private fun TodayStatsCard(stats: TodayStats, navController: NavController) {
             HomeStatItem(Icons.Outlined.Restaurant, "${stats.feedCount}", "喂奶", RecordColor.Breast,
                 modifier = Modifier.weight(1f),
                 onClick = { navController.navigate("record/feeding") })
-            HomeStatItem(Icons.Outlined.BabyChangingStation, "${stats.diaperCount}", "尿布", RecordColor.Diaper,
+            HomeStatItem(Icons.Outlined.BabyChangingStation, "${stats.diaperCount}", "换纸尿裤", RecordColor.Diaper,
                 modifier = Modifier.weight(1f),
                 onClick = { navController.navigate("record/diaper") })
             HomeStatItem(Icons.Outlined.RiceBowl, "${stats.foodCount}", "辅食", RecordColor.Food,
@@ -229,7 +229,7 @@ private fun TodayStatsCard(stats: TodayStats, navController: NavController) {
             HomeStatItem(Icons.Outlined.Bedtime, DateUtils.formatDuration(stats.sleepMinutes), "睡眠", RecordColor.Sleep,
                 modifier = Modifier.weight(1f),
                 onClick = { navController.navigate("record/sleep") })
-            HomeStatItem(Icons.Outlined.Medication, "${stats.supplementCount}", "营养", RecordColor.Supplement,
+            HomeStatItem(Icons.Outlined.Medication, "${stats.supplementCount}", "营养补剂", RecordColor.Supplement,
                 modifier = Modifier.weight(1f),
                 onClick = { navController.navigate("record/supplement") })
         }

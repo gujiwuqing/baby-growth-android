@@ -53,7 +53,7 @@ fun RecordsScreen(
     val dimensionLabels = listOf("日" to "day", "周" to "week", "月" to "month")
     val tabLabels = listOf(
         "全部" to "all", "喂养" to "feeding", "睡眠" to "sleep",
-        "换尿布" to "diaper", "辅食" to "food", "补剂" to "supplement"
+        "换纸尿裤" to "diaper", "辅食" to "food", "补剂" to "supplement"
     )
 
     val dateLabel = remember(currentDate, dimension) {
@@ -486,13 +486,21 @@ private fun MonthCalendarCard(
                                         },
                                     )
                                 }
-                                if (dayStat.count > 0 && dayStat.isCurrentMonth) {
-                                    Text(
-                                        text = "${dayStat.count}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = primaryColor,
-                                        fontSize = 9.sp,
-                                    )
+                                // 数据标记：用圆点表示有记录，颜色深浅反映记录数量
+                                if (dayStat.isCurrentMonth) {
+                                    if (dayStat.count > 0) {
+                                        val dotAlpha = (0.4f + (dayStat.count.coerceAtMost(8) / 8f) * 0.6f)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(primaryColor.copy(alpha = dotAlpha)),
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.height(6.dp))
                                 }
                             }
                         }

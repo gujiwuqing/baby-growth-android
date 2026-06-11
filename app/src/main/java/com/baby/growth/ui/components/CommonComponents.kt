@@ -40,6 +40,7 @@ fun PrimaryButton(
     enabled: Boolean = true,
     isLoading: Boolean = false,
 ) {
+    val ctaColor = BabyGrowthTheme.colors.ctaButton
     Button(
         onClick = onClick,
         modifier = modifier
@@ -48,12 +49,12 @@ fun PrimaryButton(
         enabled = enabled && !isLoading,
         shape = RoundedCornerShape(Radius.md),
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+            containerColor = ctaColor,
+            disabledContainerColor = ctaColor.copy(alpha = 0.4f),
         ),
         elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp,
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp,
         )
     ) {
         if (isLoading) {
@@ -145,7 +146,7 @@ fun QuickActionButton(
 }
 
 /**
- * 空状态组件 - 支持 emoji 插画
+ * 空状态组件 - 情感化设计，温馨插画风格
  */
 @Composable
 fun EmptyState(
@@ -163,28 +164,47 @@ fun EmptyState(
             .padding(vertical = Spacing.xxxl),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (emoji != null) {
-            Text(text = emoji, fontSize = 56.sp)
-        } else {
+        // 三层柔和圆环 + 中心图标，营造温馨氛围
+        Box(contentAlignment = Alignment.Center) {
+            // 最外层光晕
             Box(
                 modifier = Modifier
-                    .size(72.dp)
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)),
+            )
+            // 中间层
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
+            )
+            // 内层
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(36.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+                if (emoji != null) {
+                    Text(text = emoji, fontSize = 32.sp)
+                } else {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(Spacing.lg))
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (subtitle != null) {
@@ -194,6 +214,7 @@ fun EmptyState(
                 style = MaterialTheme.typography.bodySmall,
                 color = TextHint,
                 textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = Spacing.xl),
             )
         }
         if (actionText != null && onAction != null) {
