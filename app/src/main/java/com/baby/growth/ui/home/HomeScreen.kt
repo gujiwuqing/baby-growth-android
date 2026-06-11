@@ -124,11 +124,8 @@ fun HomeScreen(
             }
         }
 
-        // 今日统计卡片
-        item { TodayStatsCard(todayStats) }
-
-        // 快捷记录
-        item { QuickRecordGrid(navController) }
+        // 今日统计卡片（可点击）
+        item { TodayStatsCard(todayStats, navController) }
 
         // 最近记录
         item {
@@ -165,6 +162,17 @@ fun HomeScreen(
                     subtitle = record.detail.split("\n").firstOrNull() ?: "",
                     typeKey = record.type,
                     isLast = index == recentRecords.lastIndex,
+                    onClick = {
+                        val editRoute = when (record.tableName) {
+                            "feeds" -> "record/feeding/edit/${record.id}"
+                            "diapers" -> "record/diaper/edit/${record.id}"
+                            "sleeps" -> "record/sleep/edit/${record.id}"
+                            "foods" -> "record/food/edit/${record.id}"
+                            "supplements" -> "record/supplement/edit/${record.id}"
+                            else -> null
+                        }
+                        editRoute?.let { navController.navigate(it) }
+                    },
                     onLongClick = { showDeleteDialog = record },
                 )
             }
@@ -181,7 +189,7 @@ fun HomeScreen(
  * 今日统计卡片 - 全新设计
  */
 @Composable
-private fun TodayStatsCard(stats: TodayStats) {
+private fun TodayStatsCard(stats: TodayStats, navController: NavController) {
     BabyAccentCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -203,50 +211,27 @@ private fun TodayStatsCard(stats: TodayStats) {
         Spacer(modifier = Modifier.height(Spacing.lg))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            HomeStatItem(
-                icon = Icons.Outlined.Restaurant,
-                value = "${stats.feedCount}",
-                label = "喂奶",
-                color = RecordColor.Breast,
-            )
-            HomeStatItem(
-                icon = Icons.Outlined.BabyChangingStation,
-                value = "${stats.diaperCount}",
-                label = "尿布",
-                color = RecordColor.Diaper,
-            )
-            HomeStatItem(
-                icon = Icons.Outlined.Bedtime,
-                value = DateUtils.formatDuration(stats.sleepMinutes),
-                label = "睡眠",
-                color = RecordColor.Sleep,
-            )
+            HomeStatItem(Icons.Outlined.Restaurant, "${stats.feedCount}", "喂奶", RecordColor.Breast,
+                modifier = Modifier.weight(1f),
+                onClick = { navController.navigate("record/feeding") })
+            HomeStatItem(Icons.Outlined.BabyChangingStation, "${stats.diaperCount}", "尿布", RecordColor.Diaper,
+                modifier = Modifier.weight(1f),
+                onClick = { navController.navigate("record/diaper") })
+            HomeStatItem(Icons.Outlined.RiceBowl, "${stats.foodCount}", "辅食", RecordColor.Food,
+                modifier = Modifier.weight(1f),
+                onClick = { navController.navigate("record/food") })
         }
         Spacer(modifier = Modifier.height(Spacing.md))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            HomeStatItem(
-                icon = Icons.Outlined.RiceBowl,
-                value = "${stats.foodCount}",
-                label = "辅食",
-                color = RecordColor.Food,
-            )
-            HomeStatItem(
-                icon = Icons.Outlined.Medication,
-                value = "${stats.supplementCount}",
-                label = "营养",
-                color = RecordColor.Supplement,
-            )
-            HomeStatItem(
-                icon = Icons.Outlined.WaterDrop,
-                value = "${stats.totalMilk}ml",
-                label = "奶量",
-                color = RecordColor.Formula,
-            )
+            HomeStatItem(Icons.Outlined.Bedtime, DateUtils.formatDuration(stats.sleepMinutes), "睡眠", RecordColor.Sleep,
+                modifier = Modifier.weight(1f),
+                onClick = { navController.navigate("record/sleep") })
+            HomeStatItem(Icons.Outlined.Medication, "${stats.supplementCount}", "营养", RecordColor.Supplement,
+                modifier = Modifier.weight(1f),
+                onClick = { navController.navigate("record/supplement") })
         }
     }
 }
@@ -257,10 +242,15 @@ private fun HomeStatItem(
     value: String,
     label: String,
     color: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(80.dp),
+        modifier = modifier
+            .clip(RoundedCornerShape(Radius.md))
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
+            .padding(vertical = Spacing.sm),
     ) {
         Icon(
             imageVector = icon,
@@ -274,6 +264,7 @@ private fun HomeStatItem(
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
+            maxLines = 1,
         )
         Text(
             text = label,

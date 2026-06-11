@@ -33,6 +33,7 @@ object ThemeManager {
     private const val PREFS_NAME = "baby_growth_prefs"
     private const val KEY_THEME = "selected_theme"
     private const val KEY_DARK_MODE = "dark_mode"
+    private const val KEY_AUTO_DARK_MODE = "auto_dark_mode"
 
     private fun getPrefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -44,11 +45,25 @@ object ThemeManager {
         getPrefs(context).edit().putString(KEY_THEME, themeKey).apply()
     }
 
-    fun isDarkMode(context: Context): Boolean =
-        getPrefs(context).getBoolean(KEY_DARK_MODE, false)
+    fun isDarkMode(context: Context): Boolean {
+        val manualSetting = getPrefs(context).getBoolean(KEY_DARK_MODE, false)
+        val autoDark = getPrefs(context).getBoolean(KEY_AUTO_DARK_MODE, true)
+        if (autoDark) {
+            val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+            return hour >= 22 || hour < 8
+        }
+        return manualSetting
+    }
 
     fun setDarkMode(context: Context, darkMode: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_DARK_MODE, darkMode).apply()
+        getPrefs(context).edit().putBoolean(KEY_DARK_MODE, darkMode).putBoolean(KEY_AUTO_DARK_MODE, false).apply()
+    }
+
+    fun isAutoDarkMode(context: Context): Boolean =
+        getPrefs(context).getBoolean(KEY_AUTO_DARK_MODE, true)
+
+    fun setAutoDarkMode(context: Context, auto: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_AUTO_DARK_MODE, auto).apply()
     }
 
     fun getThemeConfig(context: Context): ThemeConfig {
@@ -79,7 +94,7 @@ object ThemeManager {
     }
 
     /**
-     * Compose 可观察的深色模式状态，当 SharedPreferences 变化时自动更新
+     * Compose 可观察的深色模式状态，支持自动夜间模式
      */
     @Composable
     fun darkModeState(context: Context): State<Boolean> {
@@ -87,12 +102,24 @@ object ThemeManager {
         val state = remember { mutableStateOf(isDarkMode(context)) }
         DisposableEffect(prefs) {
             val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                if (key == KEY_DARK_MODE) {
-                    state.value = prefs.getBoolean(KEY_DARK_MODE, false)
+                if (key == KEY_DARK_MODE || key == KEY_AUTO_DARK_MODE) {
+                    state.value = isDarkMode(context)
                 }
             }
             prefs.registerOnSharedPreferenceChangeListener(listener)
             onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+        }
+        // 每分钟检查一次时间变化（自动夜间模式）
+        DisposableEffect(Unit) {
+            val handler = android.os.Handler(android.os.Looper.getMainLooper())
+            val runnable = object : Runnable {
+                override fun run() {
+                    state.value = isDarkMode(context)
+                    handler.postDelayed(this, 60_000L)
+                }
+            }
+            handler.postDelayed(runnable, 60_000L)
+            onDispose { handler.removeCallbacks(runnable) }
         }
         return state
     }

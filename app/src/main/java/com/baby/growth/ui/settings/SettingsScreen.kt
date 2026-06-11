@@ -7,6 +7,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -47,7 +49,6 @@ fun SettingsScreen(
     val babyInfo by viewModel.babyInfo.collectAsState()
     val context = LocalContext.current
     var showClearDialog by remember { mutableStateOf(false) }
-    var showThemeDialog by remember { mutableStateOf(false) }
     val currentTheme = ThemeManager.getThemeConfig(context)
     val coroutineScope = rememberCoroutineScope()
 
@@ -91,7 +92,8 @@ fun SettingsScreen(
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background).padding(Spacing.lg),
+            modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)
+                .verticalScroll(rememberScrollState()).padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // 宝宝信息卡片
@@ -196,7 +198,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "降低亮度，呵护宝宝睡眠 🌙",
+                                text = "自动开启（22:00-8:00）",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -212,8 +214,43 @@ fun SettingsScreen(
                             )
                         )
                     }
-                    SettingsItem(Icons.Filled.Palette, "主题切换") {
-                        showThemeDialog = true
+                    Spacer(modifier = Modifier.height(Spacing.md))
+                    Text("主题色", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(modifier = Modifier.height(Spacing.sm))
+                    // 主题选择直接展示
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        ThemeManager.THEMES.forEach { theme ->
+                            val isSelected = theme.key == ThemeManager.getSelectedThemeKey(context)
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(Radius.md))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                    )
+                                    .clickable {
+                                        ThemeManager.setTheme(context, theme.key)
+                                        Toast.makeText(context, "已切换到${theme.name}", Toast.LENGTH_SHORT).show()
+                                    }
+                                    .padding(vertical = Spacing.sm)
+                                    .then(if (isSelected) Modifier else Modifier),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Text(theme.emoji, fontSize = 18.sp)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    theme.name,
+                                    fontSize = 10.sp,
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -243,66 +280,6 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) { Text("取消") }
-            }
-        )
-    }
-
-    // 主题选择对话框
-    if (showThemeDialog) {
-        AlertDialog(
-            onDismissRequest = { showThemeDialog = false },
-            title = { Text("选择主题") },
-            text = {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    modifier = Modifier.height(200.dp)
-                ) {
-                    items(ThemeManager.THEMES) { theme ->
-                        val isSelected = theme.key == ThemeManager.getSelectedThemeKey(context)
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    ThemeManager.setTheme(context, theme.key)
-                                    showThemeDialog = false
-                                    Toast.makeText(context, "已切换到${theme.name}", Toast.LENGTH_SHORT).show()
-                                },
-                            shape = RoundedCornerShape(Radius.xl),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) {
-                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                                }
-                            ),
-                            border = if (isSelected) {
-                                androidx.compose.foundation.BorderStroke(
-                                    2.dp,
-                                    MaterialTheme.colorScheme.primary
-                                )
-                            } else null
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(Spacing.md),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(theme.emoji, fontSize = 24.sp)
-                                Spacer(modifier = Modifier.height(Spacing.xs))
-                                Text(
-                                    theme.name,
-                                    fontSize = 12.sp,
-                                    textAlign = TextAlign.Center,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showThemeDialog = false }) { Text("关闭") }
             }
         )
     }

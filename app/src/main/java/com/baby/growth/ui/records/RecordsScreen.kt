@@ -94,7 +94,6 @@ fun RecordsScreen(
         topBar = {
             BabyTopBar(
                 title = "记录总览",
-                onBack = { navController.popBackStack() },
             )
         },
     ) { padding ->
@@ -488,11 +487,11 @@ private fun MonthCalendarCard(
                                     )
                                 }
                                 if (dayStat.count > 0 && dayStat.isCurrentMonth) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(5.dp)
-                                            .clip(CircleShape)
-                                            .background(primaryColor),
+                                    Text(
+                                        text = "${dayStat.count}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = primaryColor,
+                                        fontSize = 9.sp,
                                     )
                                 }
                             }
