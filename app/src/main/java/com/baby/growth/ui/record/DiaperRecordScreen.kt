@@ -81,14 +81,15 @@ class DiaperViewModel(application: Application) : AndroidViewModel(application) 
 
     fun updateRecord(
         record: DiaperRecord, type: String, hasRash: Int,
-        pooColor: String, pooShape: String, note: String, onSuccess: () -> Unit
+        pooColor: String, pooShape: String, note: String,
+        recordTime: Long, onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
             db.diaperDao().update(
                 record.copy(
                     type = type, hasRash = hasRash,
                     pooColor = pooColor, pooShape = pooShape,
-                    note = note
+                    note = note, recordTime = recordTime
                 )
             )
             onSuccess()
@@ -390,7 +391,8 @@ fun DiaperRecordScreen(
                             hasRash = if (hasRash) 1 else 0,
                             pooColor = pooColor,
                             pooShape = pooShape,
-                            note = note
+                            note = note,
+                            recordTime = recordTime
                         ) {
                             Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
                             navController.popBackStack()

@@ -155,26 +155,38 @@ fun HomeScreen(
                 )
             }
         } else {
-            itemsIndexed(recentRecords) { index, record ->
-                TimelineItem(
-                    time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(record.time)),
-                    title = record.title,
-                    subtitle = record.detail.split("\n").firstOrNull() ?: "",
-                    typeKey = record.type,
-                    isLast = index == recentRecords.lastIndex,
-                    onClick = {
-                        val editRoute = when (record.tableName) {
-                            "feeds" -> "record/feeding/edit/${record.id}"
-                            "diapers" -> "record/diaper/edit/${record.id}"
-                            "sleeps" -> "record/sleep/edit/${record.id}"
-                            "foods" -> "record/food/edit/${record.id}"
-                            "supplements" -> "record/supplement/edit/${record.id}"
-                            else -> null
-                        }
-                        editRoute?.let { navController.navigate(it) }
-                    },
-                    onLongClick = { showDeleteDialog = record },
-                )
+            // 按日期分组展示记录
+            val groupedRecords = recentRecords.groupBy { record ->
+                DateUtils.formatDayTitle(record.time)
+            }
+
+            groupedRecords.forEach { (dateLabel, records) ->
+                // 日期分割线
+                item(key = "date_header_$dateLabel") {
+                    DateDivider(label = dateLabel)
+                }
+
+                itemsIndexed(records, key = { _, record -> "${record.tableName}_${record.id}" }) { index, record ->
+                    TimelineItem(
+                        time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(record.time)),
+                        title = record.title,
+                        subtitle = record.detail.split("\n").firstOrNull() ?: "",
+                        typeKey = record.type,
+                        isLast = index == records.lastIndex,
+                        onClick = {
+                            val editRoute = when (record.tableName) {
+                                "feeds" -> "record/feeding/edit/${record.id}"
+                                "diapers" -> "record/diaper/edit/${record.id}"
+                                "sleeps" -> "record/sleep/edit/${record.id}"
+                                "foods" -> "record/food/edit/${record.id}"
+                                "supplements" -> "record/supplement/edit/${record.id}"
+                                else -> null
+                            }
+                            editRoute?.let { navController.navigate(it) }
+                        },
+                        onLongClick = { showDeleteDialog = record },
+                    )
+                }
             }
         }
 
@@ -384,6 +396,35 @@ private fun BabyInfoHeader(
                 modifier = Modifier.size(20.dp),
             )
         }
+    }
+}
+
+/**
+ * 日期分割线 — 用于区分不同天的记录
+ */
+@Composable
+private fun DateDivider(label: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Radius.md))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val emoji = when {
+            label.startsWith("今天") -> "☀️"
+            label.startsWith("昨天") -> "🌙"
+            else -> "📅"
+        }
+        Text(text = emoji, fontSize = 14.sp)
+        Spacer(modifier = Modifier.width(Spacing.sm))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

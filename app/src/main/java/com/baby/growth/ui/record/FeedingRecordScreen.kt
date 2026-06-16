@@ -109,6 +109,10 @@ fun FeedingRecordScreen(
     var side by remember { mutableStateOf("both") }
     var note by remember { mutableStateOf("") }
 
+    // 手动输入的左右时长（分钟）
+    var manualLeftMinutes by remember { mutableStateOf("") }
+    var manualRightMinutes by remember { mutableStateOf("") }
+
     // 编辑模式回填数据
     LaunchedEffect(editRecord) {
         editRecord?.let { record ->
@@ -116,6 +120,8 @@ fun FeedingRecordScreen(
             amount = if (record.amount > 0) record.amount.toString() else ""
             side = record.side
             note = record.note
+            if (record.leftDuration > 0) manualLeftMinutes = record.leftDuration.toString()
+            if (record.rightDuration > 0) manualRightMinutes = record.rightDuration.toString()
         }
     }
 
@@ -257,21 +263,21 @@ fun FeedingRecordScreen(
                 }
 
                 // 手动输入/微调
-                Text("或手动微调时长（分钟）", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("或手动输入时长（分钟）", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     OutlinedTextField(
-                        value = (leftDisplaySeconds / 60).toString(),
-                        onValueChange = {},
+                        value = manualLeftMinutes,
+                        onValueChange = { manualLeftMinutes = it.filter { c -> c.isDigit() } },
                         label = { Text("左侧(分)") }, modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(Radius.md),
-                        readOnly = true
+                        placeholder = { Text("${leftDisplaySeconds / 60}") }
                     )
                     OutlinedTextField(
-                        value = (rightDisplaySeconds / 60).toString(),
-                        onValueChange = {},
+                        value = manualRightMinutes,
+                        onValueChange = { manualRightMinutes = it.filter { c -> c.isDigit() } },
                         label = { Text("右侧(分)") }, modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(Radius.md),
-                        readOnly = true
+                        placeholder = { Text("${rightDisplaySeconds / 60}") }
                     )
                 }
             }
@@ -288,14 +294,21 @@ fun FeedingRecordScreen(
                 text = if (isEditMode) "保存修改" else "保存记录",
                 onClick = {
                     val now = System.currentTimeMillis()
+                    // 计算左右时长：手动输入优先，否则取计时器值
+                    val effectiveLeftDur = manualLeftMinutes.toIntOrNull()
+                        ?: if (feedType == "breast") BreastfeedingTimer.getLeftTotalSeconds() / 60 else 0
+                    val effectiveRightDur = manualRightMinutes.toIntOrNull()
+                        ?: if (feedType == "breast") BreastfeedingTimer.getRightTotalSeconds() / 60 else 0
+                    val totalDur = effectiveLeftDur + effectiveRightDur
+
                     if (isEditMode && editRecord != null) {
                         viewModel.updateRecord(
                             record = editRecord!!,
                             type = feedType,
                             amount = amount.toIntOrNull() ?: 0,
                             unit = if (feedType == "breast") "min" else "ml",
-                            leftDuration = editRecord!!.leftDuration,
-                            rightDuration = editRecord!!.rightDuration,
+                            leftDuration = effectiveLeftDur,
+                            rightDuration = effectiveRightDur,
                             side = side, note = note
                         ) {
                             Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
@@ -307,15 +320,12 @@ fun FeedingRecordScreen(
                             BreastfeedingTimer.stop(context)
                             FeedingTimerService.stop(context)
                         }
-                        val leftDur = if (feedType == "breast") BreastfeedingTimer.getLeftTotalSeconds() / 60 else 0
-                        val rightDur = if (feedType == "breast") BreastfeedingTimer.getRightTotalSeconds() / 60 else 0
-                        val totalDur = leftDur + rightDur
                         viewModel.saveRecord(
                             type = feedType,
                             amount = amount.toIntOrNull() ?: 0,
                             unit = if (feedType == "breast") "min" else "ml",
-                            leftDuration = leftDur,
-                            rightDuration = rightDur,
+                            leftDuration = effectiveLeftDur,
+                            rightDuration = effectiveRightDur,
                             startTime = if (feedType == "breast") now - totalDur * 60000L else 0,
                             endTime = if (feedType == "breast") now else 0,
                             side = side, note = note
