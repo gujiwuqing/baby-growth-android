@@ -29,6 +29,10 @@ import com.baby.growth.utils.BreastfeedingTimer
 import com.baby.growth.utils.DateUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 class FeedingViewModel(application: Application) : AndroidViewModel(application) {
     private val db = (application as BabyGrowthApp).database
@@ -74,14 +78,14 @@ class FeedingViewModel(application: Application) : AndroidViewModel(application)
     fun updateRecord(
         record: FeedRecord, type: String, amount: Int, unit: String,
         leftDuration: Int, rightDuration: Int,
-        side: String, note: String, onSuccess: () -> Unit
+        side: String, note: String, recordTime: Long, onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
             db.feedDao().update(
                 record.copy(
                     type = type, amount = amount, unit = unit,
                     leftDuration = leftDuration, rightDuration = rightDuration,
-                    side = side, note = note
+                    side = side, note = note, recordTime = recordTime
                 )
             )
             onSuccess()
@@ -108,6 +112,9 @@ fun FeedingRecordScreen(
     var amount by remember { mutableStateOf("") }
     var side by remember { mutableStateOf("both") }
     var note by remember { mutableStateOf("") }
+    var recordTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
 
     // 手动输入的左右时长（分钟）
     var manualLeftMinutes by remember { mutableStateOf("") }
@@ -120,6 +127,7 @@ fun FeedingRecordScreen(
             amount = if (record.amount > 0) record.amount.toString() else ""
             side = record.side
             note = record.note
+            recordTime = record.recordTime
             if (record.leftDuration > 0) manualLeftMinutes = record.leftDuration.toString()
             if (record.rightDuration > 0) manualRightMinutes = record.rightDuration.toString()
         }
@@ -156,6 +164,62 @@ fun FeedingRecordScreen(
         }
     }
 
+    // 日期选择器
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = recordTime
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { selectedDate ->
+                        val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
+                        val selectedCal = Calendar.getInstance().apply { timeInMillis = selectedDate }
+                        cal.set(Calendar.YEAR, selectedCal.get(Calendar.YEAR))
+                        cal.set(Calendar.MONTH, selectedCal.get(Calendar.MONTH))
+                        cal.set(Calendar.DAY_OF_MONTH, selectedCal.get(Calendar.DAY_OF_MONTH))
+                        recordTime = cal.timeInMillis
+                    }
+                    showDatePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
+            },
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // 时间选择器
+    if (showTimePicker) {
+        val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
+        val timePickerState = rememberTimePickerState(
+            initialHour = cal.get(Calendar.HOUR_OF_DAY),
+            initialMinute = cal.get(Calendar.MINUTE),
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val newCal = Calendar.getInstance().apply { timeInMillis = recordTime }
+                    newCal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                    newCal.set(Calendar.MINUTE, timePickerState.minute)
+                    recordTime = newCal.timeInMillis
+                    showTimePicker = false
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             BabyTopBar(
@@ -170,6 +234,41 @@ fun FeedingRecordScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
+            // 记录时间选择
+            BabyCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("记录时间", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                        Spacer(modifier = Modifier.height(Spacing.xs))
+                        Text(
+                            SimpleDateFormat("M月d日 HH:mm", Locale.CHINESE).format(Date(recordTime)),
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        OutlinedButton(
+                            onClick = { showDatePicker = true },
+                            shape = RoundedCornerShape(Radius.md),
+                            contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)
+                        ) {
+                            Text("改日期", fontSize = 13.sp)
+                        }
+                        OutlinedButton(
+                            onClick = { showTimePicker = true },
+                            shape = RoundedCornerShape(Radius.md),
+                            contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)
+                        ) {
+                            Text("改时间", fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+
             Text("喂养方式", fontWeight = FontWeight.Bold)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 listOf("breast" to "🤱 母乳", "formula" to "🍼 配方奶", "bottle" to "🍼 瓶喂母乳").forEach { (value, label) ->
@@ -309,7 +408,8 @@ fun FeedingRecordScreen(
                             unit = if (feedType == "breast") "min" else "ml",
                             leftDuration = effectiveLeftDur,
                             rightDuration = effectiveRightDur,
-                            side = side, note = note
+                            side = side, note = note,
+                            recordTime = recordTime
                         ) {
                             Toast.makeText(context, "记录已更新", Toast.LENGTH_SHORT).show()
                             navController.popBackStack()
