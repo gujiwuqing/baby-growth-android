@@ -142,7 +142,14 @@ fun SupplementRecordScreen(
         SimpleDateFormat("M月d日 HH:mm", Locale.getDefault()).format(Date(currentTime))
     }
 
-    // 常见补剂
+    // 快捷补剂：名称 + 预填用量，一键添加
+    val quickSupplements = listOf(
+        SupplementItem("AD", "1滴"),
+        SupplementItem("D3", "1滴"),
+        SupplementItem("probiotic", "1袋"),
+    )
+
+    // 常见补剂（仅名称，需手动填用量）
     val commonSupplements = listOf("维生素AD", "维生素D3", "益生菌", "钙", "锌", "铁", "DHA")
 
     Scaffold(
@@ -268,8 +275,36 @@ fun SupplementRecordScreen(
                             }
                         }
 
-                        // 常见补剂标签
-                        Text("常见补剂", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        // 快捷一键添加（带预填用量）
+                        Text("快捷添加", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            quickSupplements.forEach { item ->
+                                val displayName = when (item.name) {
+                                    "AD" -> "维生素AD"; "D3" -> "维生素D3"
+                                    "probiotic" -> "益生菌"
+                                    else -> item.name
+                                }
+                                FilterTag(
+                                    text = "$displayName ${item.dosage}",
+                                    selected = supplementItems.any { it.name == item.name && it.dosage == item.dosage },
+                                    onClick = {
+                                        // 已存在则移除，否则一键添加
+                                        val exists = supplementItems.any { it.name == item.name && it.dosage == item.dosage }
+                                        supplementItems = if (exists) {
+                                            supplementItems.filterNot { it.name == item.name && it.dosage == item.dosage }
+                                        } else {
+                                            supplementItems + item
+                                        }
+                                    }
+                                )
+                            }
+                        }
+
+                        // 常见补剂标签（仅填名称，手动填用量）
+                        Text("其他补剂", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
