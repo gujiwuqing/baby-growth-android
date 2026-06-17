@@ -11,10 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,7 +24,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.baby.growth.ui.components.BabyCard
 import com.baby.growth.ui.components.BabyTopBar
-import com.baby.growth.ui.theme.DividerColor
+import com.baby.growth.ui.components.pickers.BabyDatePicker
+import com.baby.growth.ui.components.pickers.PickerDialog
+import com.baby.growth.ui.theme.BabyGrowthTheme
 import com.baby.growth.ui.theme.Radius
 import com.baby.growth.ui.theme.Spacing
 import com.baby.growth.utils.DateUtils
@@ -89,13 +87,13 @@ fun ProfileScreen(
                     val dayAge = babyInfo?.let { DateUtils.getDayAge(it.birthday) } ?: 0
 
                     InfoRow("姓名", babyInfo?.name ?: "未设置") { editField = "name" }
-                    Divider(color = DividerColor, modifier = Modifier.padding(horizontal = Spacing.md))
+                    HorizontalDivider(color = BabyGrowthTheme.colors.dividerColor, modifier = Modifier.padding(horizontal = Spacing.md))
                     InfoRow("性别", if (babyInfo?.gender == 1) "男宝 👦" else "女宝 👧") { editField = "gender" }
-                    Divider(color = DividerColor, modifier = Modifier.padding(horizontal = Spacing.md))
+                    HorizontalDivider(color = BabyGrowthTheme.colors.dividerColor, modifier = Modifier.padding(horizontal = Spacing.md))
                     InfoRow("出生日期", babyInfo?.let { DateUtils.formatDate(it.birthday) } ?: "未设置") { editField = "birthday" }
-                    Divider(color = DividerColor, modifier = Modifier.padding(horizontal = Spacing.md))
+                    HorizontalDivider(color = BabyGrowthTheme.colors.dividerColor, modifier = Modifier.padding(horizontal = Spacing.md))
                     InfoRow("月龄", "${monthAge}个月") { }
-                    Divider(color = DividerColor, modifier = Modifier.padding(horizontal = Spacing.md))
+                    HorizontalDivider(color = BabyGrowthTheme.colors.dividerColor, modifier = Modifier.padding(horizontal = Spacing.md))
                     InfoRow("出生天数", "${dayAge}天") { }
                 }
             }
@@ -206,27 +204,19 @@ private fun EditGenderDialog(initialGender: Int, onDismiss: () -> Unit, onConfir
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditBirthdayDialog(initialBirthday: Long, onDismiss: () -> Unit, onConfirm: (Long) -> Unit) {
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = initialBirthday,
-        yearRange = IntRange(2020, 2026)
-    )
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                val selected = datePickerState.selectedDateMillis ?: initialBirthday
-                onConfirm(selected)
-            }) { Text("确定") }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
-        },
-        shape = RoundedCornerShape(Radius.xl)
+    var selectedDate by remember { mutableLongStateOf(initialBirthday) }
+    PickerDialog(
+        onDismiss = onDismiss,
+        onConfirm = { onConfirm(selectedDate) },
+        title = "选择出生日期",
     ) {
-        DatePicker(state = datePickerState)
+        BabyDatePicker(
+            selectedDateMillis = selectedDate,
+            onDateSelected = { selectedDate = it },
+            maxDateMillis = System.currentTimeMillis(),
+        )
     }
 }
 

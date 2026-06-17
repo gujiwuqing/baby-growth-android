@@ -27,6 +27,7 @@ import com.baby.growth.BabyGrowthApp
 import com.baby.growth.data.entity.GrowthRecord
 import com.baby.growth.ui.components.BabyTopBar
 import com.baby.growth.ui.components.BabyCard
+import com.baby.growth.ui.components.DateTimeInput
 import com.baby.growth.ui.components.PrimaryButton
 import com.baby.growth.ui.theme.*
 import com.baby.growth.utils.DateUtils
@@ -126,8 +127,6 @@ fun GrowthRecordScreen(
     var headCircumference by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var recordTime by remember { mutableStateOf(System.currentTimeMillis()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
 
     // 编辑模式回填数据
     LaunchedEffect(editRecord) {
@@ -158,62 +157,6 @@ fun GrowthRecordScreen(
         else getReferenceRange(monthAge, isMale, "head")
     }
 
-    // 日期选择器
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = recordTime
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedDate ->
-                        val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                        val selectedCal = Calendar.getInstance().apply { timeInMillis = selectedDate }
-                        cal.set(Calendar.YEAR, selectedCal.get(Calendar.YEAR))
-                        cal.set(Calendar.MONTH, selectedCal.get(Calendar.MONTH))
-                        cal.set(Calendar.DAY_OF_MONTH, selectedCal.get(Calendar.DAY_OF_MONTH))
-                        recordTime = cal.timeInMillis
-                    }
-                    showDatePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    // 时间选择器
-    if (showTimePicker) {
-        val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
-        val timePickerState = rememberTimePickerState(
-            initialHour = cal.get(Calendar.HOUR_OF_DAY),
-            initialMinute = cal.get(Calendar.MINUTE),
-            is24Hour = true
-        )
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val newCal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                    newCal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                    newCal.set(Calendar.MINUTE, timePickerState.minute)
-                    recordTime = newCal.timeInMillis
-                    showTimePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
-            },
-            text = {
-                TimePicker(state = timePickerState)
-            }
-        )
-    }
-
     Scaffold(
         topBar = {
             BabyTopBar(title = if (isEditMode) "编辑成长指标" else "成长指标", onBack = { navController.popBackStack() })
@@ -225,47 +168,11 @@ fun GrowthRecordScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
             // 测量日期时间选择
-            BabyCard(modifier = Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text("测量时间", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                            OutlinedButton(
-                                onClick = { showDatePicker = true },
-                                shape = RoundedCornerShape(Radius.sm),
-                                contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.xs)
-                            ) {
-                                Text("改日期", fontSize = 13.sp)
-                            }
-                            OutlinedButton(
-                                onClick = { showTimePicker = true },
-                                shape = RoundedCornerShape(Radius.sm),
-                                contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.xs)
-                            ) {
-                                Text("改时间", fontSize = 13.sp)
-                            }
-                        }
-                    }
-                    
-                    Text(
-                        SimpleDateFormat("yyyy年M月d日 HH:mm", Locale.CHINESE).format(Date(recordTime)),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    
-                    if (monthAge >= 0) {
-                        Text(
-                            "宝宝 ${monthAge}个月",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = TextSecondary,
-                        )
-                    }
-                }
-            }
+            DateTimeInput(
+                dateTime = recordTime,
+                onDateTimeChange = { recordTime = it },
+                label = "测量时间",
+            )
 
             // 上次记录
             lastRecord?.let { last ->
@@ -328,7 +235,7 @@ fun GrowthRecordScreen(
                 label = { Text("身高 (cm) — 可选") }, modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(Radius.md),
                 supportingText = heightRef?.let {
-                    { Text("参考: ${it.first}~${it.second} cm", color = TextHint, fontSize = 11.sp) }
+                    { Text("参考: ${it.first}~${it.second} cm", color = BabyGrowthTheme.colors.textHint, fontSize = 11.sp) }
                 },
             )
             OutlinedTextField(
@@ -336,7 +243,7 @@ fun GrowthRecordScreen(
                 label = { Text("体重 (kg) — 可选") }, modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(Radius.md),
                 supportingText = weightRef?.let {
-                    { Text("参考: ${it.first}~${it.second} kg", color = TextHint, fontSize = 11.sp) }
+                    { Text("参考: ${it.first}~${it.second} kg", color = BabyGrowthTheme.colors.textHint, fontSize = 11.sp) }
                 },
             )
             OutlinedTextField(
@@ -344,7 +251,7 @@ fun GrowthRecordScreen(
                 label = { Text("头围 (cm) — 可选") }, modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(Radius.md),
                 supportingText = headRef?.let {
-                    { Text("参考: ${it.first}~${it.second} cm", color = TextHint, fontSize = 11.sp) }
+                    { Text("参考: ${it.first}~${it.second} cm", color = BabyGrowthTheme.colors.textHint, fontSize = 11.sp) }
                 },
             )
             OutlinedTextField(

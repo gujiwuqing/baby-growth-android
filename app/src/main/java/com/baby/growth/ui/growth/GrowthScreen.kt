@@ -148,7 +148,7 @@ fun GrowthIndicatorWithPercentile(label: String, value: String, percentile: Floa
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, fontSize = 12.sp, color = TextSecondary)
+        Text(text = label, fontSize = 12.sp, color = BabyGrowthTheme.colors.textSecondary)
     }
 }
 
@@ -188,11 +188,11 @@ fun GrowthCurveChart(records: List<GrowthRecord>, type: String, gender: Int) {
     val backgroundColor = MaterialTheme.colorScheme.background
     val labelStyle = TextStyle(
         fontSize = 10.sp,
-        color = TextHint
+        color = BabyGrowthTheme.colors.textHint
     )
     val legendStyle = TextStyle(
         fontSize = 10.sp,
-        color = TextSecondary
+        color = BabyGrowthTheme.colors.textSecondary
     )
 
     if (validRecords.isEmpty()) {
@@ -412,7 +412,7 @@ fun HistoryRecordItem(record: GrowthRecord) {
                 Text(
                     text = "身高${record.height}cm 体重${record.weight}kg 头围${record.headCircumference}cm",
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
+                    color = BabyGrowthTheme.colors.textSecondary
                 )
             }
         }

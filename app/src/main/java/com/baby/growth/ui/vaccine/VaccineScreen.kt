@@ -25,7 +25,7 @@ import com.baby.growth.ui.components.BabyTopBar
 import com.baby.growth.ui.components.EmptyState
 import com.baby.growth.ui.theme.Radius
 import com.baby.growth.ui.theme.Spacing
-import com.baby.growth.ui.theme.TextSecondary
+import com.baby.growth.ui.theme.BabyGrowthTheme
 import com.baby.growth.utils.DateUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -186,7 +186,7 @@ fun UpcomingVaccineCard(record: VaccineRecord) {
                 Text(
                     "推荐时间: ${DateUtils.formatDate(record.scheduledDate)}",
                     fontSize = 12.sp,
-                    color = TextSecondary
+                    color = BabyGrowthTheme.colors.textSecondary
                 )
             }
         }
@@ -212,7 +212,7 @@ fun VaccineItemCard(record: VaccineRecord, onClick: () -> Unit) {
                 )
                 Text(
                     text = "推荐月龄: ${record.ageMonths}个月 | 计划日期: ${DateUtils.formatDate(record.scheduledDate)}",
-                    color = TextSecondary,
+                    color = BabyGrowthTheme.colors.textSecondary,
                     fontSize = 12.sp
                 )
                 if (isDone && record.actualDate != null) {
@@ -226,7 +226,7 @@ fun VaccineItemCard(record: VaccineRecord, onClick: () -> Unit) {
             Icon(
                 imageVector = if (isDone) Icons.Filled.CheckCircle else Icons.Outlined.Schedule,
                 contentDescription = null,
-                tint = if (isDone) MaterialTheme.colorScheme.primary else TextSecondary,
+                tint = if (isDone) MaterialTheme.colorScheme.primary else BabyGrowthTheme.colors.textSecondary,
                 modifier = Modifier.size(24.dp)
             )
         }

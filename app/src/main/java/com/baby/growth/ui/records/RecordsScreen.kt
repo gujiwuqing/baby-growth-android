@@ -169,7 +169,7 @@ fun RecordsScreen(
                             Text(
                                 "${timelineItems.size} 条",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary,
+                                color = BabyGrowthTheme.colors.textSecondary,
                             )
                         },
                     )
@@ -250,7 +250,7 @@ private fun DimensionSelector(
                         text = label,
                         modifier = Modifier.padding(vertical = 10.dp),
                         textAlign = TextAlign.Center,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else TextSecondary,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else BabyGrowthTheme.colors.textSecondary,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -360,7 +360,7 @@ private fun SummaryStatsCard(title: String, summary: DaySummary) {
             Text(
                 text = "总奶量 ${summary.totalMilk}ml · 均量 ${avgMilk}ml/次",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextSecondary,
+                color = BabyGrowthTheme.colors.textSecondary,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
             )
@@ -391,7 +391,7 @@ private fun WeeklyBarChart(stats: List<WeekDayStat>) {
                     Text(
                         text = "${stat.count}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
+                        color = BabyGrowthTheme.colors.textSecondary,
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     val barHeight = if (stat.count > 0) (stat.count.toFloat() / maxCount * 70).dp else 3.dp
@@ -409,7 +409,7 @@ private fun WeeklyBarChart(stats: List<WeekDayStat>) {
                     Text(
                         text = stat.dayLabel,
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
+                        color = BabyGrowthTheme.colors.textSecondary,
                     )
                 }
             }
@@ -445,7 +445,7 @@ private fun MonthCalendarCard(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary,
+                    color = BabyGrowthTheme.colors.textSecondary,
                 )
             }
         }
@@ -555,7 +555,7 @@ private fun WeeklyMilkLineChart(stats: List<WeekDayStat>) {
                     Text(
                         text = stat.dayLabel,
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
+                        color = BabyGrowthTheme.colors.textSecondary,
                     )
                 }
             }
@@ -613,7 +613,7 @@ private fun WeeklySleepBarChart(stats: List<WeekDayStat>) {
                     Text(
                         text = stat.dayLabel,
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary,
+                        color = BabyGrowthTheme.colors.textSecondary,
                     )
                 }
             }

@@ -78,6 +78,9 @@ data class BabyGrowthColors(
     val errorLight: Color,
     val ctaButton: Color,
     val ctaButtonPressed: Color,
+    val textSecondary: Color,
+    val textHint: Color,
+    val dividerColor: Color,
 )
 
 val LocalBabyGrowthColors = staticCompositionLocalOf {
@@ -94,6 +97,9 @@ val LocalBabyGrowthColors = staticCompositionLocalOf {
         errorLight = Color(0xFFFEF2F2),
         ctaButton = Color(0xFFD4574A),
         ctaButtonPressed = Color(0xFFC04A3E),
+        textSecondary = Color(0xFF6B7280),
+        textHint = Color(0xFF9CA3AF),
+        dividerColor = Color(0xFFF0F0F0),
     )
 }
 
@@ -124,7 +130,7 @@ val LocalBabyGrowthTypography = staticCompositionLocalOf {
         labelLarge = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
         labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp),
         statValue = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold),
-        statLabel = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium, color = TextSecondary),
+        statLabel = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium),
     )
 }
 
@@ -376,6 +382,9 @@ private fun buildLightExtendedColors(themeKey: String): BabyGrowthColors {
         errorLight = Color(0xFFFEF2F2),
         ctaButton = ctaButton,
         ctaButtonPressed = ctaPressed,
+        textSecondary = TextSecondary,
+        textHint = TextHint,
+        dividerColor = DividerColor,
     )
 }
 
@@ -403,6 +412,9 @@ private fun buildDarkExtendedColors(themeKey: String): BabyGrowthColors {
         errorLight = Color(0xFF3D1A1E),
         ctaButton = ctaButton,
         ctaButtonPressed = ctaPressed,
+        textSecondary = DarkTextSecondary,
+        textHint = DarkTextHint,
+        dividerColor = DarkDividerColor,
     )
 }
 

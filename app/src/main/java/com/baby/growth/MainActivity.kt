@@ -133,48 +133,61 @@ fun MainScreen(initialRoute: String? = null) {
             navController = navController,
             startDestination = Screen.Home.route,
             modifier = Modifier.fillMaxSize().padding(innerPadding),
-            enterTransition = { fadeIn(animationSpec = tween(200)) + slideInVertically(initialOffsetY = { 30 }) },
-            exitTransition = { fadeOut(animationSpec = tween(150)) },
-            popEnterTransition = { fadeIn(animationSpec = tween(200)) },
-            popExitTransition = { fadeOut(animationSpec = tween(150)) + slideOutVertically(targetOffsetY = { 30 }) },
+            enterTransition = { fadeIn(animationSpec = tween(250)) },
+            exitTransition = { fadeOut(animationSpec = tween(200)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(250)) },
+            popExitTransition = { fadeOut(animationSpec = tween(200)) },
         ) {
             composable(Screen.Home.route) { HomeScreen(navController) }
             composable(Screen.Records.route) { RecordsScreen(navController) }
             composable(Screen.Growth.route) { GrowthScreen(navController) }
             composable(Screen.Vaccine.route) { VaccineScreen(navController) }
             composable(Screen.Settings.route) { SettingsScreen(navController) }
-            composable("record/feeding") { FeedingRecordScreen(navController) }
-            composable("record/diaper") { DiaperRecordScreen(navController) }
-            composable("record/sleep") { SleepRecordScreen(navController) }
-            composable("record/food") { FoodRecordScreen(navController) }
-            composable("record/supplement") { SupplementRecordScreen(navController) }
-            composable("record/growth") { GrowthRecordScreen(navController) }
+            // 子页面使用横向滑入/滑出动画
+            val slideEnter: AnimatedContentTransitionScope<*>.() -> EnterTransition = {
+                slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+            }
+            val slideExit: AnimatedContentTransitionScope<*>.() -> ExitTransition = {
+                slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(250)) + fadeOut(animationSpec = tween(250))
+            }
+            val slidePopEnter: AnimatedContentTransitionScope<*>.() -> EnterTransition = {
+                slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300))
+            }
+            val slidePopExit: AnimatedContentTransitionScope<*>.() -> ExitTransition = {
+                slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(250)) + fadeOut(animationSpec = tween(250))
+            }
+            composable("record/feeding", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { FeedingRecordScreen(navController) }
+            composable("record/diaper", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { DiaperRecordScreen(navController) }
+            composable("record/sleep", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { SleepRecordScreen(navController) }
+            composable("record/food", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { FoodRecordScreen(navController) }
+            composable("record/supplement", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { SupplementRecordScreen(navController) }
+            composable("record/growth", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { GrowthRecordScreen(navController) }
             // 编辑路由
-            composable("record/feeding/edit/{id}") { backStackEntry ->
+            composable("record/feeding/edit/{id}", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { backStackEntry ->
                 val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
                 FeedingRecordScreen(navController, editId = editId)
             }
-            composable("record/diaper/edit/{id}") { backStackEntry ->
+            composable("record/diaper/edit/{id}", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { backStackEntry ->
                 val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
                 DiaperRecordScreen(navController, editId = editId)
             }
-            composable("record/sleep/edit/{id}") { backStackEntry ->
+            composable("record/sleep/edit/{id}", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { backStackEntry ->
                 val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
                 SleepRecordScreen(navController, editId = editId)
             }
-            composable("record/food/edit/{id}") { backStackEntry ->
+            composable("record/food/edit/{id}", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { backStackEntry ->
                 val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
                 FoodRecordScreen(navController, editId = editId)
             }
-            composable("record/supplement/edit/{id}") { backStackEntry ->
+            composable("record/supplement/edit/{id}", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { backStackEntry ->
                 val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
                 SupplementRecordScreen(navController, editId = editId)
             }
-            composable("record/growth/edit/{id}") { backStackEntry ->
+            composable("record/growth/edit/{id}", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { backStackEntry ->
                 val editId = backStackEntry.arguments?.getString("id")?.toLongOrNull()
                 GrowthRecordScreen(navController, editId = editId)
             }
-            composable("profile") { ProfileScreen(navController) }
+            composable("profile", enterTransition = slideEnter, exitTransition = slideExit, popEnterTransition = slidePopEnter, popExitTransition = slidePopExit) { ProfileScreen(navController) }
         }
     }
 }

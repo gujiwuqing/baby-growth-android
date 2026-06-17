@@ -287,48 +287,6 @@ private fun HomeStatItem(
 }
 
 /**
- * 快捷记录入口 - 网格布局
- */
-@Composable
-private fun QuickRecordGrid(navController: NavController) {
-    BabyCard {
-        Text(
-            text = "快捷记录",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(modifier = Modifier.height(Spacing.md))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            QuickActionButton(Icons.Outlined.Restaurant, "母乳", RecordColor.Breast,
-                onClick = { navController.navigate("record/feeding") })
-            QuickActionButton(Icons.Outlined.LocalDrink, "配方奶", RecordColor.Formula,
-                onClick = { navController.navigate("record/feeding") })
-            QuickActionButton(Icons.Outlined.BabyChangingStation, "尿布", RecordColor.Diaper,
-                onClick = { navController.navigate("record/diaper") })
-            QuickActionButton(Icons.Outlined.Bedtime, "睡眠", RecordColor.Sleep,
-                onClick = { navController.navigate("record/sleep") })
-        }
-        Spacer(modifier = Modifier.height(Spacing.md))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            QuickActionButton(Icons.Outlined.RiceBowl, "辅食", RecordColor.Food,
-                onClick = { navController.navigate("record/food") })
-            QuickActionButton(Icons.Outlined.Medication, "营养", RecordColor.Supplement,
-                onClick = { navController.navigate("record/supplement") })
-            QuickActionButton(Icons.Outlined.Straighten, "成长", RecordColor.Growth,
-                onClick = { navController.navigate("record/growth") })
-            QuickActionButton(Icons.Outlined.Vaccines, "疫苗", StatusColor.Error,
-                onClick = { navController.navigate("vaccine") })
-        }
-    }
-}
-
-/**
  * 宝宝信息头部卡片
  */
 @Composable

@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baby.growth.ui.components.BabyTopBar
 import com.baby.growth.ui.components.BabyCard
+import com.baby.growth.ui.components.DateTimeInput
 import com.baby.growth.ui.components.PrimaryButton
 import com.baby.growth.ui.components.FilterTag
 import com.baby.growth.ui.theme.Spacing
@@ -147,69 +148,6 @@ fun SupplementRecordScreen(
             recordTime = record.recordTime
         }
     }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    
-    val dateTimeText = remember(recordTime) {
-        SimpleDateFormat("M月d日 HH:mm", Locale.getDefault()).format(Date(recordTime))
-    }
-
-    // 日期选择器
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = recordTime
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedDate ->
-                        val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                        val selectedCal = Calendar.getInstance().apply { timeInMillis = selectedDate }
-                        cal.set(Calendar.YEAR, selectedCal.get(Calendar.YEAR))
-                        cal.set(Calendar.MONTH, selectedCal.get(Calendar.MONTH))
-                        cal.set(Calendar.DAY_OF_MONTH, selectedCal.get(Calendar.DAY_OF_MONTH))
-                        recordTime = cal.timeInMillis
-                    }
-                    showDatePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    // 时间选择器
-    if (showTimePicker) {
-        val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
-        val timePickerState = rememberTimePickerState(
-            initialHour = cal.get(Calendar.HOUR_OF_DAY),
-            initialMinute = cal.get(Calendar.MINUTE),
-            is24Hour = true
-        )
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val newCal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                    newCal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                    newCal.set(Calendar.MINUTE, timePickerState.minute)
-                    recordTime = newCal.timeInMillis
-                    showTimePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
-            },
-            text = {
-                TimePicker(state = timePickerState)
-            }
-        )
-    }
-
     // 快捷补剂：名称 + 预填用量，一键添加
     val quickSupplements = listOf(
         SupplementItem("AD", "1滴"),
@@ -250,37 +188,10 @@ fun SupplementRecordScreen(
                         verticalArrangement = Arrangement.spacedBy(Spacing.md)
                     ) {
                         // 开始时间
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text("记录时间", fontWeight = FontWeight.Medium, fontSize = 15.sp)
-                                Spacer(modifier = Modifier.height(Spacing.xs))
-                                Text(
-                                    dateTimeText,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    fontSize = 14.sp
-                                )
-                            }
-                            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                OutlinedButton(
-                                    onClick = { showDatePicker = true },
-                                    shape = RoundedCornerShape(Radius.sm),
-                                    contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.xs)
-                                ) {
-                                    Text("改日期", fontSize = 13.sp)
-                                }
-                                OutlinedButton(
-                                    onClick = { showTimePicker = true },
-                                    shape = RoundedCornerShape(Radius.sm),
-                                    contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.xs)
-                                ) {
-                                    Text("改时间", fontSize = 13.sp)
-                                }
-                            }
-                        }
+                        DateTimeInput(
+                            dateTime = recordTime,
+                            onDateTimeChange = { recordTime = it },
+                        )
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
@@ -477,7 +388,7 @@ fun SupplementRecordScreen(
                         onClick = { showNoteField = true },
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
-                        Text("📷 备注", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("📝 备注", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }

@@ -61,7 +61,7 @@ fun TimelineItem(
         Text(
             text = time,
             style = MaterialTheme.typography.labelMedium,
-            color = TextSecondary,
+            color = BabyGrowthTheme.colors.textSecondary,
             modifier = Modifier.width(48.dp),
         )
 
@@ -136,7 +136,7 @@ fun TimelineItem(
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary,
+                            color = BabyGrowthTheme.colors.textSecondary,
                         )
                     }
                 }

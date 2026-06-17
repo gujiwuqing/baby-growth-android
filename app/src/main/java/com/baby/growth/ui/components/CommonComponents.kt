@@ -212,7 +212,7 @@ fun EmptyState(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextHint,
+                color = BabyGrowthTheme.colors.textHint,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = Spacing.xl),
             )
@@ -335,6 +335,7 @@ fun StatItem(
         Text(
             text = label,
             style = BabyGrowthTheme.typography.statLabel,
+            color = BabyGrowthTheme.colors.textSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -353,7 +354,7 @@ fun FilterTag(
     selectedColor: Color = MaterialTheme.colorScheme.primary,
 ) {
     val backgroundColor = if (selected) selectedColor.copy(alpha = 0.12f) else Color.Transparent
-    val textColor = if (selected) selectedColor else TextSecondary
+    val textColor = if (selected) selectedColor else BabyGrowthTheme.colors.textSecondary
     val borderColor = if (selected) selectedColor.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outline
 
     Surface(

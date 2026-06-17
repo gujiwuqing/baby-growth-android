@@ -32,6 +32,7 @@ import com.baby.growth.data.entity.DiaperRecord
 import com.baby.growth.ui.components.BabyAccentCard
 import com.baby.growth.ui.components.BabyCard
 import com.baby.growth.ui.components.BabyTopBar
+import com.baby.growth.ui.components.DateTimeInput
 import com.baby.growth.ui.components.FilterTag
 import com.baby.growth.ui.components.PrimaryButton
 import com.baby.growth.ui.theme.BabyGrowthTheme
@@ -129,8 +130,6 @@ fun DiaperRecordScreen(
     }
     var note by remember { mutableStateOf("") }
     var recordTime by remember { mutableStateOf(System.currentTimeMillis()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
 
     // 编辑模式回填数据
     LaunchedEffect(editRecord) {
@@ -208,93 +207,11 @@ fun DiaperRecordScreen(
             }
 
             // 更换时间选择
-            BabyCard {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text("更换时间", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Text(
-                            DateUtils.formatDateTime(recordTime),
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        OutlinedButton(
-                            onClick = { showDatePicker = true },
-                            shape = RoundedCornerShape(Radius.md),
-                            contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)
-                        ) {
-                            Text("改日期", fontSize = 13.sp)
-                        }
-                        OutlinedButton(
-                            onClick = { showTimePicker = true },
-                            shape = RoundedCornerShape(Radius.md),
-                            contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)
-                        ) {
-                            Text("改时间", fontSize = 13.sp)
-                        }
-                    }
-                }
-            }
-
-            // 日期选择器
-            if (showDatePicker) {
-                val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                val datePickerState = rememberDatePickerState(
-                    initialSelectedDateMillis = recordTime,
-                    yearRange = IntRange(cal.get(Calendar.YEAR) - 1, cal.get(Calendar.YEAR))
-                )
-                DatePicker(
-                    state = datePickerState,
-                    showModeToggle = false
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = { showDatePicker = false }) { Text("取消") }
-                    TextButton(onClick = {
-                        datePickerState.selectedDateMillis?.let { selectedDate ->
-                            val newCal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                            val selectedCal = Calendar.getInstance().apply { timeInMillis = selectedDate }
-                            newCal.set(Calendar.YEAR, selectedCal.get(Calendar.YEAR))
-                            newCal.set(Calendar.MONTH, selectedCal.get(Calendar.MONTH))
-                            newCal.set(Calendar.DAY_OF_MONTH, selectedCal.get(Calendar.DAY_OF_MONTH))
-                            recordTime = newCal.timeInMillis
-                        }
-                        showDatePicker = false
-                    }) { Text("确认") }
-                }
-            }
-
-            // 时间选择器
-            if (showTimePicker) {
-                val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                val timePickerState = rememberTimePickerState(
-                    initialHour = cal.get(Calendar.HOUR_OF_DAY),
-                    initialMinute = cal.get(Calendar.MINUTE),
-                    is24Hour = true
-                )
-                TimePicker(state = timePickerState)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = { showTimePicker = false }) { Text("取消") }
-                    TextButton(onClick = {
-                        val newCal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                        newCal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                        newCal.set(Calendar.MINUTE, timePickerState.minute)
-                        recordTime = newCal.timeInMillis
-                        showTimePicker = false
-                    }) { Text("确认") }
-                }
-            }
+            DateTimeInput(
+                dateTime = recordTime,
+                onDateTimeChange = { recordTime = it },
+                label = "更换时间",
+            )
 
             // 类型选择卡片
             BabyCard {

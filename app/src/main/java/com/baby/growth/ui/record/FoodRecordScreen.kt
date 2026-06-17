@@ -41,6 +41,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import com.baby.growth.ui.components.BabyCard
+import com.baby.growth.ui.components.DateTimeInput
 
 class FoodViewModel(application: Application) : AndroidViewModel(application) {
     private val db = (application as BabyGrowthApp).database
@@ -127,8 +128,6 @@ fun FoodRecordScreen(
     var reaction by remember { mutableStateOf("normal") }
     var note by remember { mutableStateOf("") }
     var recordTime by remember { mutableStateOf(System.currentTimeMillis()) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
 
     // 编辑模式回填数据
     LaunchedEffect(editRecord) {
@@ -141,62 +140,6 @@ fun FoodRecordScreen(
             note = record.note
             recordTime = record.recordTime
         }
-    }
-
-    // 日期选择器
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = recordTime
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedDate ->
-                        val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                        val selectedCal = Calendar.getInstance().apply { timeInMillis = selectedDate }
-                        cal.set(Calendar.YEAR, selectedCal.get(Calendar.YEAR))
-                        cal.set(Calendar.MONTH, selectedCal.get(Calendar.MONTH))
-                        cal.set(Calendar.DAY_OF_MONTH, selectedCal.get(Calendar.DAY_OF_MONTH))
-                        recordTime = cal.timeInMillis
-                    }
-                    showDatePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("取消") }
-            },
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    // 时间选择器
-    if (showTimePicker) {
-        val cal = Calendar.getInstance().apply { timeInMillis = recordTime }
-        val timePickerState = rememberTimePickerState(
-            initialHour = cal.get(Calendar.HOUR_OF_DAY),
-            initialMinute = cal.get(Calendar.MINUTE),
-            is24Hour = true
-        )
-        AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    val newCal = Calendar.getInstance().apply { timeInMillis = recordTime }
-                    newCal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                    newCal.set(Calendar.MINUTE, timePickerState.minute)
-                    recordTime = newCal.timeInMillis
-                    showTimePicker = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("取消") }
-            },
-            text = {
-                TimePicker(state = timePickerState)
-            }
-        )
     }
 
     Scaffold(
@@ -214,39 +157,10 @@ fun FoodRecordScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.lg)
         ) {
             // 记录时间选择
-            BabyCard(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text("记录时间", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        Text(
-                            SimpleDateFormat("M月d日 HH:mm", Locale.CHINESE).format(Date(recordTime)),
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        OutlinedButton(
-                            onClick = { showDatePicker = true },
-                            shape = RoundedCornerShape(Radius.md),
-                            contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)
-                        ) {
-                            Text("改日期", fontSize = 13.sp)
-                        }
-                        OutlinedButton(
-                            onClick = { showTimePicker = true },
-                            shape = RoundedCornerShape(Radius.md),
-                            contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm)
-                        ) {
-                            Text("改时间", fontSize = 13.sp)
-                        }
-                    }
-                }
-            }
+            DateTimeInput(
+                dateTime = recordTime,
+                onDateTimeChange = { recordTime = it },
+            )
 
             OutlinedTextField(
                 value = foodName, onValueChange = { foodName = it },
